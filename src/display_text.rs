@@ -30,7 +30,7 @@ pub fn init_story() {
         let file_path = "text/example.txt";
         println!("In file {file_path}");
         let contents = fs::read_to_string(file_path);
-        println!("With text:\n{contents}");
+        //println!("With text:\n{contents}");
         Ok(())
     };
 }
