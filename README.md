@@ -2,6 +2,12 @@
 
 You are in Debt of a Million bucks and you need to figure something out, find a way to make money quick!
 
+##Features:
+   - Immersive Story with ASCII art
+   - branching paths
+   - Win/Lose system
+   - Saving to txt file
+
 ## Game Modes
 
 ### Gambler
