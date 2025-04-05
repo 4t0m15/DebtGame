@@ -33,4 +33,4 @@ Inspired by the 'Drug Wars' game by John E. Dell; but I don't want it to be a ri
 Contributions are closed, this is a personal project, sorry!
 
 ## License
-This project is licensed under the MIT License; it'll fully FOSS when I make the repo public.
+This is private, finders keepers.
