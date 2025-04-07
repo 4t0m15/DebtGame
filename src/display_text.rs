@@ -4,7 +4,7 @@ use colored::*;
 pub fn init_story() -> io::Result<()> {
     let file_path = "text/example.txt";
     let contents = fs::read_to_string(file_path)?; //contents would be a result enum (Result<String>) using ? to contents.unwrap()
-    println!("You are in Debt of a Million bucks and you need to figure something out.");
+    println!("You are in Debt of a Million dollars and you need to figure something out.");
     println!("GAME START!\n{}", contents.truecolor(39, 128, 34));//the {} is super cool why isnt this in other languages?
     Ok(())
 }
