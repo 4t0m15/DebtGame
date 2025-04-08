@@ -11,5 +11,5 @@ pub fn init_story() -> io::Result<()> {
 pub fn init_options() {
     // I love having one really long print statement with \n's
     //TODO add help option and a menu with about and start game options
-    println!("Hello, you have 3 options when it comes to making the money \n 1 - Gambler \n 2 - Daytrader \n 3 - Dealer");
+    println!("Hello, you have 3 options \n 1 - Gambler \n 2 - Daytrader \n 3 - Dealer");
 }
