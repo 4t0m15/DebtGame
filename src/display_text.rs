@@ -28,7 +28,6 @@ pub fn init_options() {
     } else if (choice == 'n') {
         //starrsutNewGame(input);
     } else if (choice == 'h') {
-        //printHelp();
     } else {
         System.out.println("Invalid option. Please choose again.");
     }*/
