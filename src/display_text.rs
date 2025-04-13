@@ -28,6 +28,6 @@ pub fn init_options() {
     } else if (choice == 'n') {
     } else if (choice == 'h') {
     } else {
-        System.out.println("Invalid option. Please choose again.");
+        System.out.println("Invalid option.");
     }*/
 }
