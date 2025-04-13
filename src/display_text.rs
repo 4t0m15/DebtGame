@@ -24,7 +24,7 @@ pub fn init_options() {
     }
 /*    println!("Choose an option: (a)bout, (n)ew game, (h)elp: ");
     if (choice == 'a') {
-        //printAbout();
+
     } else if (choice == 'n') {
         //starrsutNewGame(input);
     } else if (choice == 'h') {
