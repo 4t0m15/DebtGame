@@ -26,7 +26,6 @@ pub fn init_options() {
     if (choice == 'a') {
 
     } else if (choice == 'n') {
-        //starrsutNewGame(input);
     } else if (choice == 'h') {
     } else {
         System.out.println("Invalid option. Please choose again.");
