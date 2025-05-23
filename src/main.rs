@@ -1,4 +1,3 @@
 fn main() {
-    println!("Hello, world!");
-    println!("loading... (forever lol)");
+    println!("setting up my twttr");
 }
