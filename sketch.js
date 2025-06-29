@@ -13,14 +13,12 @@ let btnDrugWars, btnStockMarket, btnGambling, btnNewGame;
 // p5.js setup function - runs once when the sketch starts
 function setup() {
     const container = document.getElementById('game-container');
+    // Set canvas to fill the game-container (which is now full screen)
     const canvas = createCanvas(container.offsetWidth, container.offsetHeight);
     canvas.parent('game-container'); // Attach canvas to the specific div
 
     // Initial game message
     addGameMessage("Welcome to Millionaire Tycoon!");
-
-    // Set initial display values
-    updateGameInfoDisplay();
 
     // Calculate button positions and sizes based on canvas dimensions
     // These will be relative to the canvas to ensure responsiveness
@@ -28,6 +26,7 @@ function setup() {
 
     // Initialize the game state display (will draw the mainMenu)
     setGameState(currentGameState);
+    // updateGameInfoDisplay(); // Removed: HTML info display is gone, p5.js will draw it
 }
 
 // p5.js draw function - runs continuously after setup()
@@ -44,6 +43,10 @@ function draw() {
     } else if (currentGameState === 'gambling') {
         drawGamblingScreen();
     }
+
+    // Always draw game info and messages on top of any game screen
+    drawGameInfo();
+    drawGameMessages();
 }
 
 function windowResized() {
@@ -258,49 +261,93 @@ function drawBackButton() {
     // The actual state change happens in mousePressed() if the button is clicked there.
 }
 
-// --- Utility Functions ---
-function addGameMessage(message, type = 'info') {
-    gameMessages.push({ text: message, type: type });
-    const messagesDiv = document.getElementById('game-messages');
+// Function to draw game parameters (Money, Day, Location) on the canvas
+function drawGameInfo() {
+    const boxWidth = width * 0.25; // Example: 25% of canvas width
+    const boxHeight = height * 0.2; // Example: 20% of canvas height
+    const padding = 10;
+    const cornerRadius = 10;
 
-    // Ensure there's a container for messages (if not already created by previous calls)
-    let messageContainer = messagesDiv.querySelector('.log-messages-container');
-    if (!messageContainer) {
-        messageContainer = document.createElement('div');
-        messageContainer.classList.add('log-messages-container');
-        messagesDiv.appendChild(messageContainer);
-    }
+    // Position in the top right corner
+    const boxX = width - boxWidth - padding;
+    const boxY = padding;
 
-    // Clear messages specific to the container before re-adding
-    messageContainer.innerHTML = '';
+    // Draw background box
+    fill(0, 0, 0, 150); // Semi-transparent black
+    noStroke();
+    rect(boxX, boxY, boxWidth, boxHeight, cornerRadius);
 
+    // Draw text
+    fill(255); // White text
+    textSize(width * 0.025); // Responsive text size
+    textAlign(LEFT, TOP);
+    text(`Money: $${gameMoney.toLocaleString()}`, boxX + padding, boxY + padding);
+    text(`Day: ${gameDay}`, boxX + padding, boxY + padding + textSize() * 1.2);
+    text(`Location: ${gameLocation}`, boxX + padding, boxY + padding + textSize() * 2.4);
+}
 
-    // Add messages from the `gameMessages` array to DOM
-    gameMessages.forEach(msg => {
-        const p = document.createElement('p');
-        p.textContent = msg.text;
-        p.classList.add('log-message'); // Base class for all messages
-        if (msg.type === 'success') p.classList.add('log-success');
-        else if (msg.type === 'error') p.classList.add('log-error');
-        else if (msg.type === 'warning') p.classList.add('log-warning');
-        else p.classList.add('log-info'); // Default info class
-        messageContainer.appendChild(p);
-    });
+// Function to draw game messages on the canvas
+function drawGameMessages() {
+    const boxWidth = width * 0.35; // Example: 35% of canvas width
+    const boxHeight = height * 0.3; // Example: 30% of canvas height
+    const padding = 10;
+    const cornerRadius = 10;
+    const lineHeight = 18; // Fixed line height for messages
 
-    // Scroll to the bottom
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    // Position in the top right, below game info (adjust as needed)
+    const infoBoxHeight = height * 0.2 + 20; // Approx height of info box + padding
+    const boxX = width - boxWidth - padding;
+    const boxY = infoBoxHeight + padding; // Below the info box
 
-    // Keep only the last 10 messages from the actual array
-    if (gameMessages.length > 10) {
-        gameMessages = gameMessages.slice(-10);
+    // Draw background box
+    fill(0, 0, 0, 150); // Semi-transparent black
+    noStroke();
+    rect(boxX, boxY, boxWidth, boxHeight, cornerRadius);
+
+    // Draw text messages
+    textSize(14); // Fixed text size for log for now
+    textAlign(LEFT, TOP);
+
+    for (let i = 0; i < gameMessages.length; i++) {
+        const msg = gameMessages[i];
+        let textColor;
+        if (msg.type === 'success') textColor = color(72, 187, 120); // Green
+        else if (msg.type === 'error') textColor = color(239, 68, 68); // Red
+        else if (msg.type === 'warning') textColor = color(246, 173, 85); // Orange
+        else textColor = color(226, 232, 240); // Light gray (info)
+
+        fill(textColor);
+        // Position each message line
+        text(msg.text, boxX + padding, boxY + padding + i * lineHeight);
+
+        // Basic clipping to prevent text from overflowing the box visually
+        // For more advanced scrolling/clipping, you'd need a separate graphics buffer
+        if (boxY + padding + (i + 1) * lineHeight > boxY + boxHeight) {
+            break; // Stop drawing if past the box bottom
+        }
     }
 }
 
+
+// --- Utility Functions ---
+function addGameMessage(message, type = 'info') {
+    gameMessages.push({ text: message, type: type });
+
+    // Keep only the last 10 messages from the actual array (max 10 messages in log)
+    if (gameMessages.length > 10) {
+        gameMessages = gameMessages.slice(-10);
+    }
+    // The drawing of these messages will now be handled by drawGameMessages() in the draw loop
+}
+
+// Removed: This function is no longer needed as game info is drawn by drawGameInfo()
+/*
 function updateGameInfoDisplay() {
     document.getElementById('money-display').textContent = `$${gameMoney.toLocaleString()}`;
     document.getElementById('day-display').textContent = gameDay;
     document.getElementById('location-display').textContent = gameLocation;
 }
+*/
 
 // Function to change the game state (which screen is active)
 function setGameState(newState) {
@@ -320,7 +367,7 @@ function setGameState(newState) {
             addGameMessage("Entering Gambling Hall...", 'info');
         }
     }
-    updateGameInfoDisplay();
+    // updateGameInfoDisplay(); // Removed: HTML info display is gone, p5.js will draw it
 }
 
 // Function to reset the game to its initial state
@@ -331,17 +378,18 @@ function resetGame() {
     gameMessages = []; // Clear all messages
     addGameMessage("Game reset. Welcome back!");
     setGameState('mainMenu'); // Go back to main menu
+    // updateGameInfoDisplay(); // Removed: HTML info display is gone, p5.js will draw it
 }
 
 // Example functions for game progress 
 function advanceDay() {
     gameDay++;
     addGameMessage(`Advanced to Day ${gameDay}.`);
-    updateGameInfoDisplay();
+    // updateGameInfoDisplay(); // Removed: HTML info display is gone, p5.js will draw it
 }
 
 function updateMoney(amount) {
     gameMoney += amount;
     addGameMessage(`Money changed by $${amount}. Current: $${gameMoney}`);
-    updateGameInfoDisplay();
+    // updateGameInfoDisplay(); // Removed: HTML info display is gone, p5.js will draw it
 }
