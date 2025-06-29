@@ -62,6 +62,17 @@ let selectedContraband = null; // Currently selected contraband for buy/sell ope
 let lastMafiaPriceUpdateTime = 0; // Timestamp for last Mafia price update
 const MAFIA_PRICE_UPDATE_INTERVAL = 15000; // Update prices every 15 seconds (simulating "by minute")
 
+// Define fixed travel costs for Mafia Wars locations
+const MAFIA_TRAVEL_COSTS = {
+    'New York': 500,
+    'Los Angeles': 450,
+    'Chicago': 300,
+    'Miami': 400,
+    'Houston': 250,
+    'Denver': 200
+};
+
+
 // --- Global UI Elements ---
 let btnAdvanceDayGlobal; // New global button for advancing day
 
@@ -249,8 +260,8 @@ function mousePressed() {
         const buySellBtnHeight = height * 0.04; // Slightly smaller
         const buySellGap = width * 0.005; // Reduced gap
 
-        let tableX = width * 0.2; // Keep consistent with drawContrabandTable
-        let colWidth = width * 0.15; // Keep consistent
+        let tableX = width * 0.15; // Keep consistent with drawContrabandTable
+        let colWidth = width * 0.12; // Keep consistent
         let tableRowHeight = height * 0.06;
         let tableYStart = height * 0.25;
 
@@ -259,7 +270,7 @@ function mousePressed() {
             // Position buttons clearly to the right of the "Owned" column
             const buyBtnX = tableX + colWidth * 2.5 + 5; // Start right after "Owned" column
             const sellBtnX = buyBtnX + buySellBtnWidth + buySellGap;
-            const btnY = tableYStart + tableRowHeight * (i + 1) + (tableRowHeight - buySellBtnHeight * 2 - buySellGap) / 2; // Center vertically in row
+            const btnY = tableYStart + tableRowHeight * (i + 1) + (tableRowHeight - buySellBtnHeight * 2 - buySellGap) / 2; // Vertically center the two buttons
 
             const buyBtn = { x: buyBtnX, y: btnY, width: buySellBtnWidth, height: buySellBtnHeight };
             const sellBtn = { x: sellBtnX, y: btnY + buySellBtnHeight + buySellGap, width: buySellBtnWidth, height: buySellBtnHeight };
@@ -279,7 +290,7 @@ function mousePressed() {
 
         // Handle explicit quantity buy/sell buttons
         const inputX = width * 0.38; // Shifted right for more space
-        const inputY = height * 0.65;
+        const inputY = height * 0.61; // Adjusted Y
         const inputWidth = width * 0.15;
         const inputHeight = height * 0.06;
 
@@ -302,8 +313,8 @@ function mousePressed() {
         }
         // If clicking on a table row (not the buttons), select that contraband for input
         else {
-            tableX = width * 0.2;
-            colWidth = width * 0.15;
+            tableX = width * 0.15;
+            colWidth = width * 0.12;
             tableRowHeight = height * 0.06;
             tableYStart = height * 0.25;
 
@@ -613,7 +624,7 @@ function handleTravel(newLocation) {
         return;
     }
 
-    const travelCost = floor(random(50, 200)); // Random travel cost
+    const travelCost = MAFIA_TRAVEL_COSTS[newLocation]; // Use fixed travel cost
     if (gameMoney < travelCost) {
         addGameMessage(`Not enough money to travel to ${newLocation}! Need $${travelCost}.`, 'error');
         return;
@@ -853,7 +864,14 @@ function drawLocationButtons() {
             locColor = color(50, 180, 50); // Green for current location
         }
 
+        // Draw the main button with city name
         drawButton({ x: btnX, y: btnY, width: locBtnWidth, height: locBtnHeight, text: loc, color: locColor });
+
+        // Overlay the travel cost
+        fill(255, 230, 0); // Yellow for cost
+        textSize(locBtnHeight * 0.3); // Smaller text for cost
+        textAlign(CENTER, CENTER);
+        text(`$${MAFIA_TRAVEL_COSTS[loc]}`, btnX + locBtnWidth / 2, btnY + locBtnHeight * 0.75); // Position below name
     }
 }
 
