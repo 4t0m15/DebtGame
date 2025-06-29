@@ -209,14 +209,14 @@ function mousePressed() {
             }
         }
     } else if (currentGameState === 'mafiaWars') {
-        // GLOBAL NEXT DAY BUTTON CHECK
+        // GLOBAL NEXT DAY BUTTON CHECK (now located consistently on the right side below messages)
         if (isMouseOver(btnAdvanceDayGlobal)) {
             advanceDay();
             return;
         }
 
         // Mafia Wars button interactions (Back to Main Menu)
-        const btnBackToMainMafia = { x: width / 2 - (width * 0.2) / 2, y: height * 0.9, width: width * 0.2, height: height * 0.07 };
+        const btnBackToMainMafia = { x: width / 2 - (width * 0.2) / 2, y: height * 0.92, width: width * 0.2, height: height * 0.07 }; // Repositioned
         if (isMouseOver(btnBackToMainMafia)) {
             setGameState('mainMenu');
             return;
@@ -227,8 +227,9 @@ function mousePressed() {
         const locBtnHeight = height * 0.06;
         const locGapX = width * 0.01;
         const locGapY = height * 0.01;
-        const locStartX = width / 2 - (locBtnWidth * 3 + locGapX * 2) / 2; // Adjust for 3 cols
-        const locStartY = height * 0.75;
+        // Adjusted locStartX to center the group more effectively
+        const locStartX = width / 2 - (locBtnWidth * 3 + locGapX * 2) / 2;
+        const locStartY = height * 0.77; // Adjusted Y position to prevent overlap with buy/sell input
 
         for (let i = 0; i < mafiaLocations.length; i++) {
             const col = i % 3;
@@ -244,24 +245,24 @@ function mousePressed() {
         }
 
         // Buy/Sell buttons (quick buy/sell 1 for each row)
-        const buySellBtnWidth = width * 0.08;
-        const buySellBtnHeight = height * 0.05;
-        const buySellGap = width * 0.01;
+        const buySellBtnWidth = width * 0.06; // Slightly smaller to fit better
+        const buySellBtnHeight = height * 0.04; // Slightly smaller
+        const buySellGap = width * 0.005; // Reduced gap
 
-        let tableStartX = width * 0.2;
-        let tableColWidth = width * 0.15;
+        let tableX = width * 0.2; // Keep consistent with drawContrabandTable
+        let colWidth = width * 0.15; // Keep consistent
         let tableRowHeight = height * 0.06;
         let tableYStart = height * 0.25;
 
         for (let i = 0; i < contrabandTypes.length; i++) {
             const item = contrabandTypes[i];
-            // Adjusting button positions to be closer to their text
-            const buyBtnX = tableX + colWidth * 2.5 + buySellGap; // Right of Owned column
+            // Position buttons clearly to the right of the "Owned" column
+            const buyBtnX = tableX + colWidth * 2.5 + 5; // Start right after "Owned" column
             const sellBtnX = buyBtnX + buySellBtnWidth + buySellGap;
-            const btnY = tableYStart + tableRowHeight * (i + 1);
+            const btnY = tableYStart + tableRowHeight * (i + 1) + (tableRowHeight - buySellBtnHeight * 2 - buySellGap) / 2; // Center vertically in row
 
             const buyBtn = { x: buyBtnX, y: btnY, width: buySellBtnWidth, height: buySellBtnHeight };
-            const sellBtn = { x: sellBtnX, y: btnY, width: buySellBtnWidth, height: buySellBtnHeight };
+            const sellBtn = { x: sellBtnX, y: btnY + buySellBtnHeight + buySellGap, width: buySellBtnWidth, height: buySellBtnHeight };
 
             if (isMouseOver(buyBtn)) {
                 selectedContraband = item; // Select for context
@@ -277,13 +278,13 @@ function mousePressed() {
         }
 
         // Handle explicit quantity buy/sell buttons
-        const inputX = width * 0.35;
+        const inputX = width * 0.38; // Shifted right for more space
         const inputY = height * 0.65;
         const inputWidth = width * 0.15;
         const inputHeight = height * 0.06;
 
-        const buyWithQtyBtn = { x: inputX + inputWidth + 10, y: inputY, width: buySellBtnWidth * 1.2, height: inputHeight };
-        const sellWithQtyBtn = { x: buyWithQtyBtn.x + buyWithQtyBtn.width + 10, y: inputY, width: buySellBtnWidth * 1.2, height: inputHeight };
+        const buyWithQtyBtn = { x: inputX + inputWidth + 15, y: inputY, width: buySellBtnWidth * 1.5, height: inputHeight }; // Adjusted X, wider
+        const sellWithQtyBtn = { x: buyWithQtyBtn.x + buyWithQtyBtn.width + 10, y: inputY, width: buySellBtnWidth * 1.5, height: inputHeight }; // Adjusted X, wider
 
         if (selectedContraband && mafiaBuySellQuantity !== "" && !isNaN(int(mafiaBuySellQuantity))) {
             const qty = int(mafiaBuySellQuantity);
@@ -301,8 +302,8 @@ function mousePressed() {
         }
         // If clicking on a table row (not the buttons), select that contraband for input
         else {
-            tableStartX = width * 0.2;
-            tableColWidth = width * 0.15;
+            tableX = width * 0.2;
+            colWidth = width * 0.15;
             tableRowHeight = height * 0.06;
             tableYStart = height * 0.25;
 
@@ -312,7 +313,7 @@ function mousePressed() {
             for (let i = 0; i < contrabandTypes.length; i++) {
                 const item = contrabandTypes[i];
                 const rowRect = {
-                    x: tableStartX,
+                    x: tableX,
                     y: tableYStart + tableRowHeight * (i + 1),
                     width: rowClickableWidth,
                     height: tableRowHeight
@@ -515,10 +516,10 @@ function drawButton(button) {
 
 // --- Global UI Buttons ---
 function setupGlobalUIButtons() {
-    // Position Next Day button in the top right, below messages
+    // Position Next Day button in the top right, below messages, with more padding
     btnAdvanceDayGlobal = {
         x: width * 0.76, // To the left of message area
-        y: height * 0.02 + (MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR * height) + 10, // Below messages + some padding
+        y: height * 0.02 + (MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR * height) + height * 0.02, // Below messages + increased padding
         width: width * 0.15,
         height: height * 0.06,
         text: 'Next Day',
@@ -692,7 +693,7 @@ function drawMafiaWarsScreen() {
     // Back button to main menu (lower position to not overlap global Next Day)
     const btnBackToMainMafia = {
         x: width / 2 - (width * 0.2) / 2,
-        y: height * 0.9, // Lower position
+        y: height * 0.92, // Lower position to prevent overlap
         width: width * 0.2,
         height: height * 0.07,
         text: 'Main Menu',
@@ -708,15 +709,17 @@ function drawMafiaWarsScreen() {
 }
 
 function drawContrabandTable() {
-    const tableX = width * 0.2;
+    const tableX = width * 0.15; // Adjusted X to shift table left
     const tableY = height * 0.25;
-    const colWidth = width * 0.15;
+    const colWidth = width * 0.12; // Adjusted column width
+    const actionColWidth = width * 0.12; // New width for the actions column
     const rowHeight = height * 0.06;
+    const padding = 10; // Padding inside cells
 
     // Table Header
     fill(40, 40, 40, 200); // Dark header background
     noStroke();
-    rect(tableX, tableY, colWidth * 3.5, rowHeight, 8, 8, 0, 0); // Rounded top corners
+    rect(tableX, tableY, colWidth * 3 + actionColWidth, rowHeight, 8, 8, 0, 0); // Adjusted total width for 3 data cols + 1 action col
 
     fill(255, 230, 0); // Gold text
     textSize(height * 0.025);
@@ -724,6 +727,7 @@ function drawContrabandTable() {
     text("Contraband", tableX + colWidth * 0.5, tableY + rowHeight / 2);
     text("Price", tableX + colWidth * 1.5, tableY + rowHeight / 2);
     text("Owned", tableX + colWidth * 2.5, tableY + rowHeight / 2);
+    text("Actions", tableX + colWidth * 2.5 + actionColWidth / 2, tableY + rowHeight / 2); // Center actions header
 
     // Table Rows
     for (let i = 0; i < contrabandTypes.length; i++) {
@@ -737,7 +741,7 @@ function drawContrabandTable() {
             fill(20, 20, 20, 180); // Dark row background
         }
         noStroke();
-        rect(tableX, yPos, colWidth * 3.5, rowHeight); // Draw row background
+        rect(tableX, yPos, colWidth * 3 + actionColWidth, rowHeight); // Adjusted total width
 
         // Item Data
         fill(240); // White text
@@ -748,52 +752,77 @@ function drawContrabandTable() {
         text(mafiaPlayerInventory[item], tableX + colWidth * 2.5, yPos + rowHeight / 2);
 
         // Buy/Sell buttons for each row (quick buy/sell 1)
-        const buyBtn = { x: tableX + colWidth * 3.0 + 5, y: yPos + rowHeight * 0.1, width: colWidth * 0.4, height: rowHeight * 0.4 };
-        const sellBtn = { x: tableX + colWidth * 3.0 + 5, y: yPos + rowHeight * 0.5, width: colWidth * 0.4, height: rowHeight * 0.4 };
+        const buyBtnWidth = actionColWidth * 0.45; // Adjusted size
+        const buyBtnHeight = rowHeight * 0.4; // Adjusted size
+        const btnXOffset = tableX + colWidth * 2.5 + (actionColWidth - (buyBtnWidth * 2 + padding / 2)) / 2; // Center buttons in action column
+        const buyBtnY = yPos + (rowHeight - buyBtnHeight * 2 - padding / 2) / 2; // Vertically center the two buttons
+        const sellBtnY = buyBtnY + buyBtnHeight + padding / 2; // Add small vertical gap
 
-        drawButton({ ...buyBtn, text: 'Buy', color: color(50, 150, 50) });
-        drawButton({ ...sellBtn, text: 'Sell', color: color(150, 50, 50) });
+        // Buy button
+        drawButton({
+            x: btnXOffset,
+            y: buyBtnY,
+            width: buyBtnWidth,
+            height: buyBtnHeight,
+            text: 'Buy',
+            color: color(50, 150, 50)
+        });
+        // Sell button
+        drawButton({
+            x: btnXOffset + buyBtnWidth + padding / 2,
+            y: buyBtnY, // Align horizontally
+            width: buyBtnWidth,
+            height: buyBtnHeight,
+            text: 'Sell',
+            color: color(150, 50, 50)
+        });
     }
 
     // Border for the entire table
     noFill();
     stroke(100, 100, 100);
     strokeWeight(1);
-    rect(tableX, tableY, colWidth * 3.5, rowHeight * (contrabandTypes.length + 1), 8);
+    rect(tableX, tableY, colWidth * 3 + actionColWidth, rowHeight * (contrabandTypes.length + 1), 8); // Adjusted total width
 }
 
 
 function drawBuySellInput() {
-    const inputX = width * 0.35;
-    const inputY = height * 0.65;
+    const inputAreaWidth = width * 0.7; // Wider area for input and buttons
+    const inputAreaX = width / 2 - inputAreaWidth / 2; // Centered
+    const inputY = height * 0.61; // Adjusted Y, significantly below table
     const inputWidth = width * 0.15;
     const inputHeight = height * 0.06;
+    const buttonWidth = width * 0.08;
+    const padding = 15; // Space between elements
 
     // Label for input
     fill(240);
     textSize(width * 0.018);
-    textAlign(RIGHT, CENTER);
-    text(`Quantity for ${selectedContraband || '...'}:`, inputX - 10, inputY + inputHeight / 2); // Position label to the left of input
+    textAlign(LEFT, CENTER); // Align left, text will flow
+    text(`Quantity for ${selectedContraband || '...'}:`, inputAreaX, inputY + inputHeight / 2);
+
+    // Calculate dynamic X for input field based on label length
+    let labelWidth = textWidth(`Quantity for ${selectedContraband || '...'}:`);
+    const actualInputX = inputAreaX + labelWidth + padding;
 
     // Input field background
     fill(30, 40, 50);
     stroke(100, 115, 130);
     strokeWeight(1);
-    rect(inputX, inputY, inputWidth, inputHeight, 8);
+    rect(actualInputX, inputY, inputWidth, inputHeight, 8);
 
     fill(240, 245, 250);
     textSize(width * 0.02);
     textAlign(CENTER, CENTER);
-    text(mafiaBuySellQuantity || 'Enter Qty', inputX + inputWidth / 2, inputY + inputHeight / 2);
+    text(mafiaBuySellQuantity || 'Enter Qty', actualInputX + inputWidth / 2, inputY + inputHeight / 2);
 
     // Buy/Sell buttons with quantity
-    const buySellBtnWidth = width * 0.08;
-    const buySellBtnHeight = inputHeight;
-    const buyWithQtyBtn = { x: inputX + inputWidth + 10, y: inputY, width: buySellBtnWidth, height: buySellBtnHeight, text: 'Buy Qty', color: color(50, 180, 50) };
-    const sellWithQtyBtn = { x: buyWithQtyBtn.x + buyWithQtyBtn.width + 10, y: inputY, width: buySellBtnWidth, height: buySellBtnHeight, text: 'Sell Qty', color: color(220, 50, 50) };
+    const buyWithQtyBtnX = actualInputX + inputWidth + padding;
+    const sellWithQtyBtnX = buyWithQtyBtnX + buttonWidth + padding / 2; // Small gap between buy and sell
+    const btnY = inputY;
 
-    drawButton(buyWithQtyBtn);
-    drawButton(sellWithQtyBtn);
+    drawButton({ x: buyWithQtyBtnX, y: btnY, width: buttonWidth, height: inputHeight, text: 'Buy Qty', color: color(50, 180, 50) });
+    drawButton({ x: sellWithQtyBtnX, y: btnY, width: buttonWidth, height: inputHeight, text: 'Sell Qty', color: color(220, 50, 50) });
 }
 
 
@@ -805,7 +834,7 @@ function drawLocationButtons() {
     
     // Calculate start X to center 3 columns
     const locStartX = width / 2 - (locBtnWidth * 3 + locGapX * 2) / 2;
-    const locStartY = height * 0.75; // Position below input/buy-sell area
+    const locStartY = height * 0.77; // Adjusted Y position to be below buy/sell input
 
     fill(240, 245, 250);
     textSize(width * 0.018);
