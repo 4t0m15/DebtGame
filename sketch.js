@@ -26,7 +26,6 @@ function setup() {
 
     // Initialize the game state display (will draw the mainMenu)
     setGameState(currentGameState);
-    // updateGameInfoDisplay(); // Removed: HTML info display is gone, p5.js will draw it
 }
 
 // p5.js draw function - runs continuously after setup()
@@ -92,15 +91,29 @@ function isMouseOver(button) {
 
 //Drawing the main menu
 function setupMainMenuButtons() {
-    // Calculate sizes and positions dynamically
-    const buttonWidth = width * 0.6; // 60% of canvas width
-    const buttonHeight = height * 0.1; // 10% of canvas height
-    const gap = height * 0.03; // 3% of canvas height for spacing
+    // Define the area where menu elements should be drawn to avoid overlapping info/log boxes
+    // Info box is on the right, so menu can extend more to the left
+    const usableWidth = width * 0.6; // Use 60% of width for main menu content
+    const usableLeftPadding = (width - usableWidth) / 2; // Center this usable area
 
-    const startY = (height / 2) - (1.5 * buttonHeight + 1.5 * gap); // Center the group of 3 buttons
+    // Top and bottom boundaries for the menu items to avoid top UI and bottom back button (if any)
+    // Considering info/message boxes take up space from the top-right
+    const topOffsetForUI = height * 0.35; // Start menu content below info/message boxes
+    const bottomOffsetForUI = height * 0.1; // Ensure space at bottom for general layout
+
+    const availableMenuHeight = height - topOffsetForUI - bottomOffsetForUI;
+
+    const buttonWidth = usableWidth * 0.8; // Buttons will be 80% of usable width
+    const buttonHeight = availableMenuHeight * 0.12; // Adjusted height based on available space
+    const gap = availableMenuHeight * 0.03; // Spacing between buttons
+
+    // Center the group of 4 buttons within the available menu area
+    const totalButtonsHeight = 4 * buttonHeight + 3 * gap;
+    const startY = topOffsetForUI + (availableMenuHeight - totalButtonsHeight) / 2;
+
 
     btnDrugWars = {
-        x: (width - buttonWidth) / 2, //20%
+        x: usableLeftPadding + (usableWidth - buttonWidth) / 2, // Centered in usable area
         y: startY,
         width: buttonWidth,
         height: buttonHeight,
@@ -109,8 +122,8 @@ function setupMainMenuButtons() {
     };
 
     btnStockMarket = {
-        x: (width - buttonWidth) / 2, // 20 %
-        y: startY + buttonHeight + gap, // 3 stacked on each other
+        x: usableLeftPadding + (usableWidth - buttonWidth) / 2,
+        y: startY + buttonHeight + gap,
         width: buttonWidth,
         height: buttonHeight,
         text: '📈 Stock Market',
@@ -118,7 +131,7 @@ function setupMainMenuButtons() {
     };
 
     btnGambling = {
-        x: (width - buttonWidth) / 2,
+        x: usableLeftPadding + (usableWidth - buttonWidth) / 2,
         y: startY + 2 * (buttonHeight + gap),
         width: buttonWidth,
         height: buttonHeight,
@@ -127,8 +140,8 @@ function setupMainMenuButtons() {
     };
 
     btnNewGame = {
-        x: (width - buttonWidth * 0.8) / 2, // Slightly narrower
-        y: startY + 3 * (buttonHeight + gap) + gap * 2, // Below other buttons
+        x: usableLeftPadding + (usableWidth - buttonWidth * 0.8) / 2, // Slightly narrower
+        y: startY + 3 * (buttonHeight + gap) + gap * 2, // Below other buttons, more gap
         width: buttonWidth * 0.8,
         height: buttonHeight * 0.7, // Slightly smaller
         text: 'Start New Game',
@@ -141,16 +154,16 @@ function drawMainMenu() {
     fill(0, 0, 0, 180); // Semi-transparent dark overlay
     rect(0, 0, width, height);
 
-    // Title for main menu
+    // Title for main menu (positioned lower to avoid info boxes)
     textAlign(CENTER, CENTER);
-    textSize(width * 0.05); // Responsive text size
+    textSize(width * 0.04); // Slightly smaller text size
     fill(255, 200, 0); // Yellow
-    text("Choose Your Path", width / 2, height * 0.2);
+    text("Choose Your Path", width / 2, height * 0.15); // Adjusted Y position
 
-    // Subtitle
-    textSize(width * 0.025);
+    // Subtitle (positioned lower)
+    textSize(width * 0.02); // Slightly smaller text size
     fill(200);
-    text("Make a Million Dollars!", width / 2, height * 0.3);
+    text("Make a Million Dollars!", width / 2, height * 0.22); // Adjusted Y position
 
     // Draw buttons
     drawButton(btnDrugWars);
@@ -381,7 +394,7 @@ function resetGame() {
     // updateGameInfoDisplay(); // Removed: HTML info display is gone, p5.js will draw it
 }
 
-// Example functions for game progress 
+// Example functions for game progress
 function advanceDay() {
     gameDay++;
     addGameMessage(`Advanced to Day ${gameDay}.`);

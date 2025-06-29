@@ -15,7 +15,7 @@ body {
     display: flex;
     flex-direction: column; /* Stack elements vertically */
     align-items: center; /* Center content horizontally */
-    justify-content: space-between; /* Distribute space between elements (title, game-container, info/messages) */
+    justify-content: flex-start; /* Align content to the top */
     min-height: 100vh; /* Ensure body covers full viewport height */
     background-color: #1a202c; /* Dark background */
     color: #edf2f7; /* Light text */
@@ -27,7 +27,7 @@ body {
     font-size: 2.25rem;
     font-weight: 900;
     color: #ef4444;
-    margin-bottom: 1rem; /* Adjusted margin to give more space for canvas */
+    margin-bottom: 1rem; /* Space between title and canvas */
     text-align: center;
     text-shadow:
         0 0 7px #ef4444,
@@ -37,93 +37,34 @@ body {
         0 0 82px #ff0000,
         0 0 92px #ff0000,
         0 0 102px #ff0000,
-        0 0 151px #ff0000;
+        0 0 100px #ff0000; 
     flex-shrink: 0; /* Prevent title from shrinking */
 }
 
-/* Game container where the p5.js canvas will be injected - now takes up most available space */
+/* Game container where the p5.js canvas will be injected - takes up all remaining available space */
 #game-container {
     position: relative;
-    border-radius: 0.75rem;
+    border-radius: 0.75rem; /* Maintain rounded corners for the overall game area */
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     border: 2px solid #4a5568;
-    overflow: hidden;
+    overflow: hidden; /* Important for rounded corners on canvas */
     background-color: #2d3748;
-    width: 100%; /* Take full available width of its container */
-    flex-grow: 1; /* Allow container to take up remaining vertical space */
+    width: 100%; /* Take full available width */
+    flex-grow: 1; /* Allow container to take up all remaining vertical space */
     display: flex; /* Ensures canvas fills it */
     justify-content: center;
     align-items: center;
-    /* Removed max-width and aspect-ratio to allow it to grow fully */
-    max-width: unset;
-    aspect-ratio: unset;
+    max-width: unset; /* Ensure it can go full width */
+    aspect-ratio: unset; /* Allow height to be flexible based on flex-grow */
 }
 
 canvas {
     display: block;
     width: 100%; /* Canvas fills the game-container */
     height: 100%; /* Canvas fills the game-container */
-    border-radius: 0; /* No rounded corners for canvas if container is fullscreen */
+    border-radius: 0.75rem; /* Match container border-radius */
 }
 
-/* Styles for the game info and messages divs below the canvas */
-#game-info, #game-messages {
-    margin-top: 1rem;
-    background-color: #2d3748;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    border: 1px solid #4a5568;
-    color: #e2e8f0;
-    width: 100%;
-    max-width: 600px;
-    flex-shrink: 0; /* Prevent these from shrinking */
-}
-
-#game-messages {
-    max-height: 10rem;
-    overflow-y: auto;
-    margin-bottom: 0; /* No margin at the very bottom, let body padding handle */
-    border-top: 2px solid #ef4444;
-}
-
-#game-info p, #game-messages p {
-    margin-bottom: 0.5rem;
-}
-
-/* Specific text colors for info display */
-#money-display {
-    color: #48bb78;
-    font-weight: bold;
-}
-#day-display {
-    color: #f6ad55;
-    font-weight: bold;
-}
-#location-display {
-    color: #63b3ed;
-    font-weight: bold;
-}
-
-/* Styles for game log messages (used by sketch.js) */
-.log-message {
-    font-size: 0.875rem;
-    margin-bottom: 0.25rem;
-    line-height: 1.2;
-}
-
-.log-info {
-    color: #e2e8f0;
-}
-
-.log-success {
-    color: #48bb78;
-}
-
-.log-error {
-    color: #ef4444;
-}
-
-.log-warning {
-    color: #f6ad55;
-}
+/* Removed all styles related to #game-info, #game-messages,
+   .log-message, .log-info, .log-success, .log-error, .log-warning
+   as these HTML elements are now gone and their content is drawn by p5.js. */
