@@ -1549,7 +1549,6 @@ function placeHighLowBet(betAmount, choice) {
     
     // Deduct bet immediately
     gameMoney -= betAmount;
-
     setTimeout(() => {
         highLowCard2 = drawRandomCard();
         highLowRevealed = true;
