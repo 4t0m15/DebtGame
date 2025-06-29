@@ -2,7 +2,7 @@
 let gameMoney = 1000;
 let gameDay = 1;
 let gameLocation = "Main Menu"; // Start at the main menu
-let gameMessages = [];
+let gameMessages = []; // Each message will be {text: "...", type: "...", timestamp: millis(), opacity: 255}
 
 // Game state management
 let currentGameState = 'mainMenu'; // 'mainMenu', 'drugWars', 'stockMarket', 'gambling'
@@ -10,18 +10,25 @@ let currentGameState = 'mainMenu'; // 'mainMenu', 'drugWars', 'stockMarket', 'ga
 // Variables for main menu buttons (their positions and sizes)
 let btnDrugWars, btnStockMarket, btnGambling, btnNewGame;
 
+// Variables for Canvas-drawn game title
+let gameCanvasTitle;
+
+// Constants for fading messages
+const MESSAGE_FADE_DURATION = 4000; // milliseconds for messages to fade out
+const MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR = 0.25; // Percentage of canvas height for message area
+const MESSAGE_LINE_HEIGHT_FACTOR = 0.03; // Percentage of canvas height for each message line
+
 // p5.js setup function - runs once when the sketch starts
 function setup() {
-    const container = document.getElementById('game-container');
-    // Set canvas to fill the game-container (which is now full screen)
-    const canvas = createCanvas(container.offsetWidth, container.offsetHeight);
+    // Set canvas to fill the entire window
+    const canvas = createCanvas(windowWidth, windowHeight);
     canvas.parent('game-container'); // Attach canvas to the specific div
 
     // Initial game message
-    addGameMessage("Welcome to Millionaire Tycoon!");
+    addGameMessage("Welcome to Debt Game!");
 
-    // Calculate button positions and sizes based on canvas dimensions
-    // These will be relative to the canvas to ensure responsiveness
+    // Setup title and button positions based on new full-screen canvas
+    setupCanvasTitle();
     setupMainMenuButtons();
 
     // Initialize the game state display (will draw the mainMenu)
@@ -31,6 +38,9 @@ function setup() {
 // p5.js draw function - runs continuously after setup()
 function draw() {
     background(50, 70, 90); // Dark blue-gray background for the canvas, matching the theme
+
+    // Always draw the game title at the top
+    drawCanvasTitle();
 
     // Depending on the current game state, draw different things
     if (currentGameState === 'mainMenu') {
@@ -43,15 +53,16 @@ function draw() {
         drawGamblingScreen();
     }
 
-    // Always draw game info and messages on top of any game screen
+    // Always draw game info (left) and messages (right) on top of any game screen
     drawGameInfo();
-    drawGameMessages();
+    drawFadingMessages(); // Call the new fading messages function
 }
 
 function windowResized() {
-    const container = document.getElementById('game-container');
-    resizeCanvas(container.offsetWidth, container.offsetHeight);
-    // Recalculate button positions on resize
+    // Resize canvas to new window dimensions
+    resizeCanvas(windowWidth, windowHeight);
+    // Recalculate positions for all drawn elements
+    setupCanvasTitle();
     setupMainMenuButtons();
 }
 
@@ -89,31 +100,62 @@ function isMouseOver(button) {
            mouseY > button.y && mouseY < button.y + button.height;
 }
 
+// --- Canvas Title Drawing ---
+function setupCanvasTitle() {
+    gameCanvasTitle = {
+        text: "Debt Game",
+        textSize: width * 0.05, // Responsive text size
+        x: width / 2,
+        y: height * 0.07, // Positioned at the top
+        color: color(239, 68, 68), // Red
+        shadowColor: color(255, 0, 0), // Base for glow
+        shadowStrength: 4 // Reduced strength for less glare
+    };
+}
+
+function drawCanvasTitle() {
+    fill(gameCanvasTitle.color);
+    textSize(gameCanvasTitle.textSize);
+    textAlign(CENTER, CENTER);
+
+    // Apply text shadow manually for glow effect (reduced glare)
+    drawingContext.shadowOffsetX = 0;
+    drawingContext.shadowOffsetY = 0;
+    drawingContext.shadowBlur = gameCanvasTitle.shadowStrength; // Reduced blur for less glare
+    drawingContext.shadowColor = gameCanvasTitle.shadowColor;
+
+    text(gameCanvasTitle.text, gameCanvasTitle.x, gameCanvasTitle.y);
+
+    // Reset shadow properties after drawing to avoid affecting other elements
+    drawingContext.shadowBlur = 0;
+    drawingContext.shadowColor = 'rgba(0,0,0,0)';
+}
+
+
 //Drawing the main menu
 function setupMainMenuButtons() {
-    // Define the area where menu elements should be drawn to avoid overlapping info/log boxes
-    // Info box is on the right, so menu can extend more to the left
-    const usableWidth = width * 0.6; // Use 60% of width for main menu content
-    const usableLeftPadding = (width - usableWidth) / 2; // Center this usable area
+    // Define the area where main menu elements should be drawn
+    // Accounting for the Canvas Title at the top
+    const topOffsetForTitle = gameCanvasTitle.y + gameCanvasTitle.textSize / 2 + height * 0.05; // Below title + some margin
 
-    // Top and bottom boundaries for the menu items to avoid top UI and bottom back button (if any)
-    // Considering info/message boxes take up space from the top-right
-    const topOffsetForUI = height * 0.35; // Start menu content below info/message boxes
-    const bottomOffsetForUI = height * 0.1; // Ensure space at bottom for general layout
+    // The game info and messages are now positioned independently,
+    // so the main menu can occupy more central space.
+    // Adjust these based on visual testing to avoid overlap.
+    const usableHeightForMenu = height * 0.6; // Take up 60% of vertical space for menu
+    const menuAreaYStart = (height - usableHeightForMenu) / 2 + height * 0.1; // Shift down slightly
 
-    const availableMenuHeight = height - topOffsetForUI - bottomOffsetForUI;
+    const buttonWidth = width * 0.45; // Adjusted width for buttons
+    const buttonHeight = usableHeightForMenu * 0.12;
+    const gap = usableHeightForMenu * 0.03;
 
-    const buttonWidth = usableWidth * 0.8; // Buttons will be 80% of usable width
-    const buttonHeight = availableMenuHeight * 0.12; // Adjusted height based on available space
-    const gap = availableMenuHeight * 0.03; // Spacing between buttons
-
-    // Center the group of 4 buttons within the available menu area
+    // Center the group of 4 buttons vertically within the available menu area
     const totalButtonsHeight = 4 * buttonHeight + 3 * gap;
-    const startY = topOffsetForUI + (availableMenuHeight - totalButtonsHeight) / 2;
+    const startY = menuAreaYStart + (usableHeightForMenu - totalButtonsHeight) / 2;
+    const centerX = width / 2;
 
 
     btnDrugWars = {
-        x: usableLeftPadding + (usableWidth - buttonWidth) / 2, // Centered in usable area
+        x: centerX - buttonWidth / 2,
         y: startY,
         width: buttonWidth,
         height: buttonHeight,
@@ -122,7 +164,7 @@ function setupMainMenuButtons() {
     };
 
     btnStockMarket = {
-        x: usableLeftPadding + (usableWidth - buttonWidth) / 2,
+        x: centerX - buttonWidth / 2,
         y: startY + buttonHeight + gap,
         width: buttonWidth,
         height: buttonHeight,
@@ -131,7 +173,7 @@ function setupMainMenuButtons() {
     };
 
     btnGambling = {
-        x: usableLeftPadding + (usableWidth - buttonWidth) / 2,
+        x: centerX - buttonWidth / 2,
         y: startY + 2 * (buttonHeight + gap),
         width: buttonWidth,
         height: buttonHeight,
@@ -140,7 +182,7 @@ function setupMainMenuButtons() {
     };
 
     btnNewGame = {
-        x: usableLeftPadding + (usableWidth - buttonWidth * 0.8) / 2, // Slightly narrower
+        x: centerX - (buttonWidth * 0.8) / 2, // Slightly narrower
         y: startY + 3 * (buttonHeight + gap) + gap * 2, // Below other buttons, more gap
         width: buttonWidth * 0.8,
         height: buttonHeight * 0.7, // Slightly smaller
@@ -150,26 +192,26 @@ function setupMainMenuButtons() {
 }
 
 function drawMainMenu() {
-    // Draw background overlay for menu
+    // Draw background overlay for menu (no longer covering title)
     fill(0, 0, 0, 180); // Semi-transparent dark overlay
-    rect(0, 0, width, height);
+    // Only draw overlay from below the title to the bottom
+    rect(0, gameCanvasTitle.y + gameCanvasTitle.textSize / 2, width, height - (gameCanvasTitle.y + gameCanvasTitle.textSize / 2));
 
-    // Title for main menu (positioned lower to avoid info boxes)
-    textAlign(CENTER, CENTER);
-    textSize(width * 0.04); // Slightly smaller text size
-    fill(255, 200, 0); // Yellow
-    text("Choose Your Path", width / 2, height * 0.15); // Adjusted Y position
-
-    // Subtitle (positioned lower)
-    textSize(width * 0.02); // Slightly smaller text size
-    fill(200);
-    text("Make a Million Dollars!", width / 2, height * 0.22); // Adjusted Y position
 
     // Draw buttons
     drawButton(btnDrugWars);
     drawButton(btnStockMarket);
     drawButton(btnGambling);
     drawButton(btnNewGame);
+
+    // Main menu title and subtitle
+    textAlign(CENTER, CENTER);
+    textSize(width * 0.04);
+    fill(255, 200, 0); // Yellow
+    text("Choose Your Path", width / 2, height * 0.30); // Adjusted Y position
+    textSize(width * 0.02);
+    fill(200);
+    text("Make a Million Dollars!", width / 2, height * 0.38); // Adjusted Y position
 }
     // Generic function to draw a button
 function drawButton(button) {
@@ -274,69 +316,73 @@ function drawBackButton() {
     // The actual state change happens in mousePressed() if the button is clicked there.
 }
 
-// Function to draw game parameters (Money, Day, Location) on the canvas
+// Function to draw game parameters (Money, Day, Location) on the canvas (positioned left)
 function drawGameInfo() {
-    const boxWidth = width * 0.25; // Example: 25% of canvas width
-    const boxHeight = height * 0.2; // Example: 20% of canvas height
-    const padding = 10;
-    const cornerRadius = 10;
+    const boxWidth = width * 0.22; // Responsive width
+    const boxHeight = height * 0.15; // Responsive height
+    const padding = width * 0.01; // Responsive padding
+    const cornerRadius = 8;
 
-    // Position in the top right corner
-    const boxX = width - boxWidth - padding;
+    // Position in the top LEFT corner
+    const boxX = padding;
     const boxY = padding;
 
     // Draw background box
-    fill(0, 0, 0, 150); // Semi-transparent black
+    fill(0, 0, 0, 180); // More opaque black for sleekness
     noStroke();
     rect(boxX, boxY, boxWidth, boxHeight, cornerRadius);
 
     // Draw text
     fill(255); // White text
-    textSize(width * 0.025); // Responsive text size
+    const textBaseSize = height * 0.025; // Base responsive text size
+    textSize(textBaseSize);
     textAlign(LEFT, TOP);
     text(`Money: $${gameMoney.toLocaleString()}`, boxX + padding, boxY + padding);
-    text(`Day: ${gameDay}`, boxX + padding, boxY + padding + textSize() * 1.2);
-    text(`Location: ${gameLocation}`, boxX + padding, boxY + padding + textSize() * 2.4);
+    textSize(textBaseSize * 0.9); // Slightly smaller for other lines
+    text(`Day: ${gameDay}`, boxX + padding, boxY + padding + textBaseSize * 1.4);
+    text(`Location: ${gameLocation}`, boxX + padding, boxY + padding + textBaseSize * 2.8);
 }
 
-// Function to draw game messages on the canvas
-function drawGameMessages() {
-    const boxWidth = width * 0.35; // Example: 35% of canvas width
-    const boxHeight = height * 0.3; // Example: 30% of canvas height
-    const padding = 10;
-    const cornerRadius = 10;
-    const lineHeight = 18; // Fixed line height for messages
+// Function to draw game messages on the canvas (positioned right, smaller, sleek, fading)
+function drawFadingMessages() {
+    const messageAreaRightEdge = width * 0.98; // Closer to right edge
+    const messageAreaTop = height * 0.02; // Start from top, slightly below canvas top
+    const messageLineHeight = height * MESSAGE_LINE_HEIGHT_FACTOR; // Responsive line height
 
-    // Position in the top right, below game info (adjust as needed)
-    const infoBoxHeight = height * 0.2 + 20; // Approx height of info box + padding
-    const boxX = width - boxWidth - padding;
-    const boxY = infoBoxHeight + padding; // Below the info box
+    textSize(height * 0.02); // Responsive text size for messages
+    textAlign(RIGHT, TOP); // Align text to the right
 
-    // Draw background box
-    fill(0, 0, 0, 150); // Semi-transparent black
-    noStroke();
-    rect(boxX, boxY, boxWidth, boxHeight, cornerRadius);
+    // Filter out messages that have completely faded and update opacity for others
+    gameMessages = gameMessages.filter(msg => {
+        const elapsedTime = millis() - msg.timestamp;
+        const remainingOpacity = 255 - map(elapsedTime, 0, MESSAGE_FADE_DURATION, 0, 255);
 
-    // Draw text messages
-    textSize(14); // Fixed text size for log for now
-    textAlign(LEFT, TOP);
+        if (remainingOpacity <= 0) {
+            return false; // Remove message if completely faded
+        }
+        msg.opacity = remainingOpacity; // Update opacity for drawing
+        return true; // Keep message if still visible
+    });
 
-    for (let i = 0; i < gameMessages.length; i++) {
+    // Draw active messages, stacking upwards from the bottom of the message area
+    // Determine the Y position for the newest message, and then stack upwards.
+    let currentY = messageAreaTop + (MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR * height) - messageLineHeight; // Start at the "bottom" of the display area for newest message
+
+    for (let i = gameMessages.length - 1; i >= 0; i--) { // Loop from newest to oldest
         const msg = gameMessages[i];
         let textColor;
-        if (msg.type === 'success') textColor = color(72, 187, 120); // Green
-        else if (msg.type === 'error') textColor = color(239, 68, 68); // Red
-        else if (msg.type === 'warning') textColor = color(246, 173, 85); // Orange
-        else textColor = color(226, 232, 240); // Light gray (info)
+        // Define colors for message types, applying the current opacity
+        if (msg.type === 'success') textColor = color(72, 187, 120, msg.opacity); // Green
+        else if (msg.type === 'error') textColor = color(239, 68, 68, msg.opacity); // Red
+        else if (msg.type === 'warning') textColor = color(246, 173, 85, msg.opacity); // Orange
+        else textColor = color(226, 232, 240, msg.opacity); // Light gray (info)
 
         fill(textColor);
-        // Position each message line
-        text(msg.text, boxX + padding, boxY + padding + i * lineHeight);
+        text(msg.text, messageAreaRightEdge, currentY); // Draw text aligned right
+        currentY -= messageLineHeight; // Move up for the next older message
 
-        // Basic clipping to prevent text from overflowing the box visually
-        // For more advanced scrolling/clipping, you'd need a separate graphics buffer
-        if (boxY + padding + (i + 1) * lineHeight > boxY + boxHeight) {
-            break; // Stop drawing if past the box bottom
+        if (currentY < messageAreaTop) { // Stop drawing if out of allocated message area
+            break;
         }
     }
 }
@@ -344,23 +390,10 @@ function drawGameMessages() {
 
 // --- Utility Functions ---
 function addGameMessage(message, type = 'info') {
-    gameMessages.push({ text: message, type: type });
-
-    // Keep only the last 10 messages from the actual array (max 10 messages in log)
-    if (gameMessages.length > 10) {
-        gameMessages = gameMessages.slice(-10);
-    }
-    // The drawing of these messages will now be handled by drawGameMessages() in the draw loop
+    // Add new message with current time and full opacity
+    gameMessages.push({ text: message, type: type, timestamp: millis(), opacity: 255 });
+    // Messages will be automatically removed by drawFadingMessages() when they fully fade
 }
-
-// Removed: This function is no longer needed as game info is drawn by drawGameInfo()
-/*
-function updateGameInfoDisplay() {
-    document.getElementById('money-display').textContent = `$${gameMoney.toLocaleString()}`;
-    document.getElementById('day-display').textContent = gameDay;
-    document.getElementById('location-display').textContent = gameLocation;
-}
-*/
 
 // Function to change the game state (which screen is active)
 function setGameState(newState) {
@@ -380,29 +413,25 @@ function setGameState(newState) {
             addGameMessage("Entering Gambling Hall...", 'info');
         }
     }
-    // updateGameInfoDisplay(); // Removed: HTML info display is gone, p5.js will draw it
 }
 
 // Function to reset the game to its initial state
 function resetGame() {
     gameMoney = 1000;
     gameDay = 1;
-    gameLocation = "Main Menu"; // Reset location to main menu, this line was corrected
-    gameMessages = []; // Clear all messages
+    gameLocation = "Main Menu";
+    gameMessages = []; // Clear all messages immediately on reset
     addGameMessage("Game reset. Welcome back!");
     setGameState('mainMenu'); // Go back to main menu
-    // updateGameInfoDisplay(); // Removed: HTML info display is gone, p5.js will draw it
 }
 
 // Example functions for game progress
 function advanceDay() {
     gameDay++;
     addGameMessage(`Advanced to Day ${gameDay}.`);
-    // updateGameInfoDisplay(); // Removed: HTML info display is gone, p5.js will draw it
 }
 
 function updateMoney(amount) {
     gameMoney += amount;
     addGameMessage(`Money changed by $${amount}. Current: $${gameMoney}`);
-    // updateGameInfoDisplay(); // Removed: HTML info display is gone, p5.js will draw it
 }
