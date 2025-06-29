@@ -19,8 +19,11 @@ const MESSAGE_HOLD_DURATION = 2000;    // milliseconds for messages to stay full
 const MESSAGE_FADE_OUT_DURATION = 1500; // milliseconds for messages to fade out
 const MESSAGE_TOTAL_DURATION = MESSAGE_FADE_IN_DURATION + MESSAGE_HOLD_DURATION + MESSAGE_FADE_OUT_DURATION;
 
-const MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR = 0.05; // Percentage of canvas height for message area
+const MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR = 0.25; // Percentage of canvas height for message area
 const MESSAGE_LINE_HEIGHT_FACTOR = 0.03; // Percentage of canvas height for each message line
+
+// Constant for blinking effect
+const BLINK_INTERVAL = 700; // milliseconds for one phase (e.g., 700ms on, 700ms off)
 
 // p5.js setup function - runs once when the sketch starts
 function setup() {
@@ -201,21 +204,25 @@ function drawMainMenu() {
     // Only draw overlay from below the title to the bottom
     rect(0, gameCanvasTitle.y + gameCanvasTitle.textSize / 2, width, height - (gameCanvasTitle.y + gameCanvasTitle.textSize / 2));
 
+    // Blinking "Choose Your Path" text
+    if (floor(millis() / BLINK_INTERVAL) % 2 === 0) { // Toggle visibility based on time
+        textAlign(CENTER, CENTER);
+        textSize(width * 0.04);
+        fill(255, 200, 0); // Yellow
+        text("Choose Your Path", width / 2, height * 0.30); // Adjusted Y position
+    }
+
+    // "Make a Million Dollars!" subtitle (non-blinking)
+    textAlign(CENTER, CENTER);
+    textSize(width * 0.02);
+    fill(200);
+    text("Make a Million Dollars!", width / 2, height * 0.38); // Adjusted Y position
 
     // Draw buttons
     drawButton(btnDrugWars);
     drawButton(btnStockMarket);
     drawButton(btnGambling);
     drawButton(btnNewGame);
-
-    // Main menu title and subtitle
-    textAlign(CENTER, CENTER);
-    textSize(width * 0.04);
-    fill(255, 200, 0); // Yellow
-    text("Choose Your Path", width / 2, height * 0.30); // Adjusted Y position
-    textSize(width * 0.02);
-    fill(200);
-    text("Make a Million Dollars!", width / 2, height * 0.38); // Adjusted Y position
 }
     // Generic function to draw a button
 function drawButton(button) {
@@ -356,7 +363,7 @@ function drawFadingMessages() {
     textSize(height * 0.02); // Responsive text size for messages
     textAlign(RIGHT, TOP); // Align text to the right
 
-    // Filter out messages that have completely faded and update opacity for others
+    // Filter out messages that have completed their full fade cycle
     gameMessages = gameMessages.filter(msg => {
         const elapsedTime = millis() - msg.timestamp;
         // Keep message if its total duration has not passed
