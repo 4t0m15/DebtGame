@@ -2,7 +2,7 @@
 let gameMoney = 1000;
 let gameDay = 1;
 let gameLocation = "Main Menu"; // Start at the main menu
-let gameMessages = []; // Each message will be {text: "...", type: "...", timestamp: millis(), opacity: 255}
+let gameMessages = []; // Each message will be {text: "...", type: "...", timestamp: millis()}
 
 // Game state management
 let currentGameState = 'mainMenu'; // 'mainMenu', 'drugWars', 'stockMarket', 'gambling'
@@ -14,8 +14,12 @@ let btnDrugWars, btnStockMarket, btnGambling, btnNewGame;
 let gameCanvasTitle;
 
 // Constants for fading messages
-const MESSAGE_FADE_DURATION = 4000; // milliseconds for messages to fade out
-const MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR = 0.25; // Percentage of canvas height for message area
+const MESSAGE_FADE_IN_DURATION = 500;   // milliseconds for messages to fade in
+const MESSAGE_HOLD_DURATION = 2000;    // milliseconds for messages to stay fully opaque
+const MESSAGE_FADE_OUT_DURATION = 1500; // milliseconds for messages to fade out
+const MESSAGE_TOTAL_DURATION = MESSAGE_FADE_IN_DURATION + MESSAGE_HOLD_DURATION + MESSAGE_FADE_OUT_DURATION;
+
+const MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR = 0.05; // Percentage of canvas height for message area
 const MESSAGE_LINE_HEIGHT_FACTOR = 0.03; // Percentage of canvas height for each message line
 
 // p5.js setup function - runs once when the sketch starts
@@ -324,8 +328,8 @@ function drawGameInfo() {
     const cornerRadius = 8;
 
     // Position in the top LEFT corner
-    const boxX = padding;
-    const boxY = padding;
+    const boxX = padding; // Left side
+    const boxY = padding; // Top side
 
     // Draw background box
     fill(0, 0, 0, 180); // More opaque black for sleekness
@@ -355,13 +359,8 @@ function drawFadingMessages() {
     // Filter out messages that have completely faded and update opacity for others
     gameMessages = gameMessages.filter(msg => {
         const elapsedTime = millis() - msg.timestamp;
-        const remainingOpacity = 255 - map(elapsedTime, 0, MESSAGE_FADE_DURATION, 0, 255);
-
-        if (remainingOpacity <= 0) {
-            return false; // Remove message if completely faded
-        }
-        msg.opacity = remainingOpacity; // Update opacity for drawing
-        return true; // Keep message if still visible
+        // Keep message if its total duration has not passed
+        return elapsedTime < MESSAGE_TOTAL_DURATION;
     });
 
     // Draw active messages, stacking upwards from the bottom of the message area
@@ -370,12 +369,27 @@ function drawFadingMessages() {
 
     for (let i = gameMessages.length - 1; i >= 0; i--) { // Loop from newest to oldest
         const msg = gameMessages[i];
+        const elapsedTime = millis() - msg.timestamp;
+        let opacity;
+
+        if (elapsedTime < MESSAGE_FADE_IN_DURATION) {
+            // Fading in
+            opacity = map(elapsedTime, 0, MESSAGE_FADE_IN_DURATION, 0, 255);
+        } else if (elapsedTime < MESSAGE_FADE_IN_DURATION + MESSAGE_HOLD_DURATION) {
+            // Fully visible
+            opacity = 255;
+        } else {
+            // Fading out
+            const fadeOutTime = elapsedTime - (MESSAGE_FADE_IN_DURATION + MESSAGE_HOLD_DURATION);
+            opacity = map(fadeOutTime, 0, MESSAGE_FADE_OUT_DURATION, 255, 0);
+        }
+
         let textColor;
         // Define colors for message types, applying the current opacity
-        if (msg.type === 'success') textColor = color(72, 187, 120, msg.opacity); // Green
-        else if (msg.type === 'error') textColor = color(239, 68, 68, msg.opacity); // Red
-        else if (msg.type === 'warning') textColor = color(246, 173, 85, msg.opacity); // Orange
-        else textColor = color(226, 232, 240, msg.opacity); // Light gray (info)
+        if (msg.type === 'success') textColor = color(72, 187, 120, opacity); // Green
+        else if (msg.type === 'error') textColor = color(239, 68, 68, opacity); // Red
+        else if (msg.type === 'warning') textColor = color(246, 173, 85, opacity); // Orange
+        else textColor = color(226, 232, 240, opacity); // Light gray (info)
 
         fill(textColor);
         text(msg.text, messageAreaRightEdge, currentY); // Draw text aligned right
@@ -390,9 +404,8 @@ function drawFadingMessages() {
 
 // --- Utility Functions ---
 function addGameMessage(message, type = 'info') {
-    // Add new message with current time and full opacity
-    gameMessages.push({ text: message, type: type, timestamp: millis(), opacity: 255 });
-    // Messages will be automatically removed by drawFadingMessages() when they fully fade
+    // Add new message with current time. Opacity will be calculated by drawFadingMessages.
+    gameMessages.push({ text: message, type: type, timestamp: millis() });
 }
 
 // Function to change the game state (which screen is active)
