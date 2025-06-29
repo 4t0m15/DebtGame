@@ -5,7 +5,9 @@ let gameLocation = "Main Menu"; // Start at the main menu
 let gameMessages = []; // Each message will be {text: "...", type: "...", timestamp: millis()}
 
 // Game state management
-let currentGameState = 'mainMenu'; // 'mainMenu', 'drugWars', 'stockMarket', 'gambling'
+let currentGameState = 'mainMenu'; // 'mainMenu', 'drugWars', 'stockMarket', 'gambling', 'wallet', 'moveRegion', 'buySellStock'
+let selectedStockSymbol = null; // Used for the 'buySellStock' state
+let buySellQuantity = ""; // String for simulated text input quantity
 
 // Variables for main menu buttons (their positions and sizes)
 let btnDrugWars, btnStockMarket, btnGambling, btnNewGame;
@@ -19,11 +21,35 @@ const MESSAGE_HOLD_DURATION = 2000;    // milliseconds for messages to stay full
 const MESSAGE_FADE_OUT_DURATION = 1500; // milliseconds for messages to fade out
 const MESSAGE_TOTAL_DURATION = MESSAGE_FADE_IN_DURATION + MESSAGE_HOLD_DURATION + MESSAGE_FADE_OUT_DURATION;
 
-const MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR = 0.05; // Percentage of canvas height for message area
+const MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR = 0.25; // Percentage of canvas height for message area
 const MESSAGE_LINE_HEIGHT_FACTOR = 0.03; // Percentage of canvas height for each message line
 
 // Constant for blinking effect
 const BLINK_INTERVAL = 700; // milliseconds for one phase (e.g., 700ms on, 700ms off)
+
+// --- Stock Market Variables ---
+const regions = [
+    { name: "USA Stock Market", stocks: ["MSFT", "AAPL", "GOOGL", "AMZN", "TSLA"] },
+    { name: "European Stock Market", stocks: ["SAP", "VWAGY", "RMS.PA", "BP", "MC.PA"] },
+    { name: "Chinese Stock Market", stocks: ["BABA", "TCEHY", "JD", "BIDU", "NIO"] },
+    { name: "Indian Stock Market", stocks: ["RELIANCE", "TCS", "HDFCBANK", "INFY", "BHARTIARTL"] },
+    { name: "Italian Stock Market", stocks: ["ENI", "ISP.MI", "CRM.MI", "TIT.MI", "STM"] },
+    { name: "British Stock Market", stocks: ["HSBA", "UL", "GSK", "RIO", "AZN"] }
+];
+let currentRegionIndex = 0; // Default to USA
+
+// Stores stock data: { symbol: { price: float, prevPrice: float, volatility: float, history: [] } }
+let stocksData = {};
+// Player's portfolio: { symbol: { quantity: int, avgPrice: float } }
+let playerPortfolio = {};
+
+// Buttons specific to stock market screen
+let btnNextDay, btnMoveRegion, btnWallet;
+let stockTiles = []; // Array of objects for clickable stock tiles
+
+// Button for back to stock market from buy/sell or wallet
+let btnBackToStockMarket;
+
 
 // p5.js setup function - runs once when the sketch starts
 function setup() {
@@ -31,12 +57,18 @@ function setup() {
     const canvas = createCanvas(windowWidth, windowHeight);
     canvas.parent('game-container'); // Attach canvas to the specific div
 
+    // Initialize stock data
+    initializeStocks();
+
     // Initial game message
     addGameMessage("Welcome to Debt Game!");
 
     // Setup title and button positions based on new full-screen canvas
     setupCanvasTitle();
-    setupMainMenuButtons();
+    setupMainMenuButtons(); // Call once at start
+
+    // Set up stock market specific buttons (done once as their relative position is stable)
+    setupStockMarketButtons();
 
     // Initialize the game state display (will draw the mainMenu)
     setGameState(currentGameState);
@@ -58,6 +90,12 @@ function draw() {
         drawStockMarketScreen();
     } else if (currentGameState === 'gambling') {
         drawGamblingScreen();
+    } else if (currentGameState === 'wallet') {
+        drawWalletScreen();
+    } else if (currentGameState === 'moveRegion') {
+        drawMoveRegionScreen();
+    } else if (currentGameState === 'buySellStock') {
+        drawBuySellStockScreen(selectedStockSymbol);
     }
 
     // Always draw game info (left) and messages (right) on top of any game screen
@@ -70,11 +108,11 @@ function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
     // Recalculate positions for all drawn elements
     setupCanvasTitle();
-    setupMainMenuButtons();
+    setupMainMenuButtons(); // Re-calculate main menu button positions
+    setupStockMarketButtons(); // Re-calculate stock market specific button positions
 }
 
 function mousePressed() {
-    // Check for clicks only if on the main menu
     if (currentGameState === 'mainMenu') {
         if (isMouseOver(btnDrugWars)) {
             setGameState('drugWars');
@@ -85,10 +123,79 @@ function mousePressed() {
         } else if (isMouseOver(btnNewGame)) {
             resetGame();
         }
-    }
-    // More functions will go here later for other clickable entities.
-    // Handle back button click for other screens
-    if (currentGameState !== 'mainMenu') {
+    } else if (currentGameState === 'stockMarket') {
+        if (isMouseOver(btnNextDay)) {
+            advanceDay();
+        } else if (isMouseOver(btnMoveRegion)) {
+            setGameState('moveRegion');
+        } else if (isMouseOver(btnWallet)) {
+            setGameState('wallet');
+        } else if (isMouseOver(btnBackToMain)) { // Back to main menu from stock screen
+            setGameState('mainMenu');
+        } else {
+            // Check for stock tile clicks
+            for (let i = 0; i < stockTiles.length; i++) {
+                if (isMouseOver(stockTiles[i])) {
+                    selectedStockSymbol = stockTiles[i].symbol;
+                    setGameState('buySellStock');
+                    buySellQuantity = ""; // Clear quantity input
+                    break;
+                }
+            }
+        }
+    } else if (currentGameState === 'wallet') {
+        if (isMouseOver(btnBackToStockMarket)) {
+            setGameState('stockMarket');
+        }
+    } else if (currentGameState === 'moveRegion') {
+        // Handle region selection buttons
+        for (let i = 0; i < regions.length; i++) {
+            const regionBtn = {
+                x: width / 2 - (width * 0.45) / 2, // Centered like main menu buttons
+                y: height * 0.25 + i * (height * 0.08 + height * 0.02), // Stacked vertically
+                width: width * 0.45,
+                height: height * 0.08,
+            };
+            if (isMouseOver(regionBtn)) {
+                if (i !== currentRegionIndex) { // Only move if selecting a different region
+                    changeRegion(i);
+                } else {
+                    addGameMessage(`Already in ${regions[i].name}.`, 'warning');
+                }
+                break; // Exit loop after handling click
+            }
+        }
+        if (isMouseOver(btnBackToStockMarket)) {
+            setGameState('stockMarket');
+        }
+    } else if (currentGameState === 'buySellStock') {
+        const buyBtn = { x: width * 0.35, y: height * 0.7, width: width * 0.1, height: height * 0.06 };
+        const sellBtn = { x: width * 0.55, y: height * 0.7, width: width * 0.1, height: height * 0.06 };
+        const maxBtn = { x: width * 0.55 + width * 0.1 + 10, y: height * 0.63, width: width * 0.07, height: height * 0.04 };
+        const buyMaxBtn = { x: width * 0.35 - width * 0.07 - 10, y: height * 0.63, width: width * 0.07, height: height * 0.04 };
+
+
+        if (isMouseOver(buyBtn)) {
+            buyStock(selectedStockSymbol, int(buySellQuantity));
+            buySellQuantity = ""; // Clear quantity after purchase
+        } else if (isMouseOver(sellBtn)) {
+            sellStock(selectedStockSymbol, int(buySellQuantity));
+            buySellQuantity = ""; // Clear quantity after sale
+        } else if (isMouseOver(btnBackToStockMarket)) {
+            setGameState('stockMarket');
+        } else if (isMouseOver(maxBtn)) {
+            // Set quantity to max sellable
+            buySellQuantity = (playerPortfolio[selectedStockSymbol] ? playerPortfolio[selectedStockSymbol].quantity : 0).toString();
+        } else if (isMouseOver(buyMaxBtn)) {
+            // Set quantity to max buyable
+            const stockPrice = stocksData[selectedStockSymbol].price;
+            if (stockPrice > 0) {
+                buySellQuantity = Math.floor(gameMoney / stockPrice).toString();
+            } else {
+                buySellQuantity = "0"; // Cannot buy if price is 0
+            }
+        }
+    } else if (currentGameState !== 'mainMenu') { // Generic back button for drugWars, gambling
         const backButtonWidth = width * 0.3;
         const backButtonHeight = height * 0.08;
         const backButtonX = (width - backButtonWidth) / 2;
@@ -101,7 +208,18 @@ function mousePressed() {
     }
 }
 
-// Extrq function to check if mouse is hovering.
+function keyPressed() {
+    if (currentGameState === 'buySellStock') {
+        if (keyCode === BACKSPACE) {
+            buySellQuantity = buySellQuantity.substring(0, buySellQuantity.length - 1);
+        } else if (key >= '0' && key <= '9') {
+            buySellQuantity += key;
+        }
+    }
+}
+
+
+// Helper function to check if mouse is over a button
 function isMouseOver(button) {
     return mouseX > button.x && mouseX < button.x + button.width &&
            mouseY > button.y && mouseY < button.y + button.height;
@@ -139,15 +257,11 @@ function drawCanvasTitle() {
 }
 
 
-//Drawing the main menu
+// --- Main Menu Drawing and Logic (p5.js handled) ---
 function setupMainMenuButtons() {
     // Define the area where main menu elements should be drawn
-    // Accounting for the Canvas Title at the top
     const topOffsetForTitle = gameCanvasTitle.y + gameCanvasTitle.textSize / 2 + height * 0.05; // Below title + some margin
 
-    // The game info and messages are now positioned independently,
-    // so the main menu can occupy more central space.
-    // Adjust these based on visual testing to avoid overlap.
     const usableHeightForMenu = height * 0.6; // Take up 60% of vertical space for menu
     const menuAreaYStart = (height - usableHeightForMenu) / 2 + height * 0.1; // Shift down slightly
 
@@ -268,31 +382,355 @@ function drawDrugWarsScreen() {
     drawBackButton();
 }
 
+// --- Stock Market Functions ---
+
+function initializeStocks() {
+    for (const region of regions) {
+        for (const symbol of region.stocks) {
+            stocksData[symbol] = {
+                price: parseFloat((random(50, 200)).toFixed(2)), // Initial price
+                prevPrice: 0, // Will be updated on first day advance
+                volatility: random(0.01, 0.05), // Price change percentage
+                history: [] // To store price history if needed later
+            };
+        }
+    }
+    // Initial portfolio (empty)
+    playerPortfolio = {};
+}
+
+function advanceStockPrices() {
+    for (const symbol in stocksData) {
+        stocksData[symbol].prevPrice = stocksData[symbol].price; // Store previous price
+        let change = stocksData[symbol].price * stocksData[symbol].volatility * random(-1, 1);
+        stocksData[symbol].price = parseFloat((stocksData[symbol].price + change).toFixed(2));
+        // Ensure price doesn't go below a reasonable minimum
+        if (stocksData[symbol].price < 1) stocksData[symbol].price = 1;
+    }
+    addGameMessage("Stock prices updated.", 'info');
+}
+
+function setupStockMarketButtons() {
+    const buttonWidth = width * 0.2;
+    const buttonHeight = height * 0.07;
+    const gap = width * 0.01;
+
+    // Position buttons at the bottom center
+    const startX = width / 2 - (buttonWidth * 1.5 + gap); // Adjusted to center 3 buttons
+    const btnY = height * 0.9;
+
+    btnNextDay = {
+        x: startX,
+        y: btnY,
+        width: buttonWidth,
+        height: buttonHeight,
+        text: 'Next Day',
+        color: color(50, 150, 200) // Blueish
+    };
+    btnMoveRegion = {
+        x: startX + buttonWidth + gap,
+        y: btnY,
+        width: buttonWidth,
+        height: buttonHeight,
+        text: 'Move',
+        color: color(180, 100, 50) // Orangish
+    };
+    btnWallet = {
+        x: startX + 2 * (buttonWidth + gap),
+        y: btnY,
+        width: buttonWidth,
+        height: buttonHeight,
+        text: 'Wallet',
+        color: color(50, 180, 50) // Greenish
+    };
+    // Reusing the back to main button concept for screens that go back to stock market
+    btnBackToStockMarket = {
+        x: width / 2 - (width * 0.2) / 2, // Centered
+        y: height * 0.9,
+        width: width * 0.2,
+        height: height * 0.07,
+        text: 'Back',
+        color: color(80, 80, 80)
+    };
+
+    // Main stock market back button (to main menu)
+    btnBackToMain = {
+        x: width / 2 - (width * 0.2) / 2, // Centered
+        y: height * 0.8, // Slightly higher to not overlap with stock market specific buttons
+        width: width * 0.2,
+        height: height * 0.07,
+        text: 'Main Menu',
+        color: color(80, 80, 80)
+    };
+}
+
 function drawStockMarketScreen() {
     background(30, 100, 30); // Dark green background for Stock Market
-    textAlign(CENTER, CENTER);
-    textSize(32);
-    fill(200, 255, 200); // Light green
-    text("Stock Market: Coming Soon!", width / 2, height / 2 - 40);
-    textSize(18);
+
+    // Display current region
     fill(255);
-    text("Get ready to invest.", width / 2, height / 2 + 10);
-    drawBackButton();
+    textSize(width * 0.03);
+    textAlign(CENTER, TOP);
+    text(regions[currentRegionIndex].name, width / 2, height * 0.15); // Position below main title
+
+    // Draw stock tiles
+    const stocksInRegion = regions[currentRegionIndex].stocks;
+    const numStocks = stocksInRegion.length;
+    const tileWidth = width * 0.15;
+    const tileHeight = height * 0.12;
+    const tileGapX = width * 0.02;
+    const tileGapY = height * 0.03;
+
+    // Calculate starting X to center the tiles
+    const totalTilesWidth = numStocks * tileWidth + (numStocks - 1) * tileGapX;
+    let startX = (width - totalTilesWidth) / 2;
+    const startY = height * 0.3; // Position below region name
+
+    stockTiles = []; // Clear and re-populate for current view
+
+    for (let i = 0; i < numStocks; i++) {
+        const symbol = stocksInRegion[i];
+        const stock = stocksData[symbol];
+        const tileX = startX + i * (tileWidth + tileGapX);
+        const tileY = startY;
+
+        stockTiles.push({ x: tileX, y: tileY, width: tileWidth, height: tileHeight, symbol: symbol });
+
+        // Draw tile background
+        fill(50, 70, 90); // Dark blue-gray for tile background
+        stroke(100);
+        strokeWeight(1);
+        rect(tileX, tileY, tileWidth, tileHeight, 10);
+
+        // Stock Info
+        fill(255);
+        textSize(tileHeight * 0.25);
+        textAlign(CENTER, TOP);
+        text(symbol, tileX + tileWidth / 2, tileY + tileHeight * 0.1); // Symbol
+
+        textSize(tileHeight * 0.2);
+        text(`$${stock.price.toFixed(2)}`, tileX + tileWidth / 2, tileY + tileHeight * 0.4); // Price
+
+        // Price change indicator
+        if (stock.prevPrice !== 0) {
+            const change = stock.price - stock.prevPrice;
+            let changeColor = color(200); // Default neutral
+            if (change > 0) {
+                changeColor = color(0, 200, 0); // Green for positive
+            } else if (change < 0) {
+                changeColor = color(200, 0, 0); // Red for negative
+            }
+            fill(changeColor);
+            text(`${change.toFixed(2)}`, tileX + tileWidth / 2, tileY + tileHeight * 0.7); // Change value
+        }
+    }
+
+    // Draw action buttons
+    drawButton(btnNextDay);
+    drawButton(btnMoveRegion);
+    drawButton(btnWallet);
+    drawButton(btnBackToMain); // Back to main menu
 }
 
-function drawGamblingScreen() {
-    background(80, 30, 100); // Dark purple background for Gambling
-    textAlign(CENTER, CENTER);
-    textSize(32);
-    fill(200, 200, 255); // Light purple
-    text("Gambling Hall: Coming Soon!", width / 2, height / 2 - 40);
-    textSize(18);
+function drawWalletScreen() {
+    background(50, 50, 100); // Blueish background for Wallet
     fill(255);
-    text("Try your luck!", width / 2, height / 2 + 10);
-    drawBackButton();
+    textSize(width * 0.03);
+    textAlign(CENTER, TOP);
+    text("Your Portfolio", width / 2, height * 0.15);
+
+    // Table headers
+    const tableYStart = height * 0.25;
+    const colWidth = width * 0.15;
+    const rowHeight = height * 0.05;
+    const startX = width / 2 - (colWidth * 2.5); // Center the table
+
+    textSize(height * 0.025);
+    fill(200, 200, 0); // Yellowish for headers
+    textAlign(CENTER, CENTER);
+    text("Symbol", startX + colWidth * 0.5, tableYStart);
+    text("Quantity", startX + colWidth * 1.5, tableYStart);
+    text("Avg. Price", startX + colWidth * 2.5, tableYStart);
+    text("Current Value", startX + colWidth * 3.5, tableYStart);
+    text("P/L", startX + colWidth * 4.5, tableYStart);
+
+    let currentY = tableYStart + rowHeight;
+    for (const symbol in playerPortfolio) {
+        const item = playerPortfolio[symbol];
+        const currentStock = stocksData[symbol];
+        if (!currentStock) continue; // Skip if stock data not found
+
+        const currentValue = item.quantity * currentStock.price;
+        const profitLoss = currentValue - (item.quantity * item.avgPrice);
+
+        fill(255);
+        textSize(height * 0.02);
+        textAlign(CENTER, CENTER);
+
+        text(symbol, startX + colWidth * 0.5, currentY);
+        text(item.quantity, startX + colWidth * 1.5, currentY);
+        text(`$${item.avgPrice.toFixed(2)}`, startX + colWidth * 2.5, currentY);
+        text(`$${currentValue.toFixed(2)}`, startX + colWidth * 3.5, currentY);
+
+        let plColor = color(200);
+        if (profitLoss > 0) plColor = color(0, 200, 0);
+        else if (profitLoss < 0) plColor = color(200, 0, 0);
+        fill(plColor);
+        text(`$${profitLoss.toFixed(2)}`, startX + colWidth * 4.5, currentY);
+
+        currentY += rowHeight;
+    }
+
+    drawButton(btnBackToStockMarket);
 }
 
-// Function to draw a generic "Back to Main Menu" button
+function drawMoveRegionScreen() {
+    background(60, 60, 120); // Darker blue background for Move screen
+    fill(255);
+    textSize(width * 0.03);
+    textAlign(CENTER, TOP);
+    text("Choose a Region", width / 2, height * 0.15);
+
+    // Draw region buttons
+    const buttonWidth = width * 0.45;
+    const buttonHeight = height * 0.08;
+    const gap = height * 0.02; // Vertical gap
+
+    let currentY = height * 0.25;
+    for (let i = 0; i < regions.length; i++) {
+        const region = regions[i];
+        const btnX = width / 2 - buttonWidth / 2;
+        const btnY = currentY;
+
+        const regionBtn = { x: btnX, y: btnY, width: buttonWidth, height: buttonHeight, text: region.name, color: (i === currentRegionIndex ? color(100, 200, 100) : color(80, 80, 80)) };
+        drawButton(regionBtn);
+
+        currentY += buttonHeight + gap;
+    }
+
+    drawButton(btnBackToStockMarket);
+}
+
+function drawBuySellStockScreen(symbol) {
+    if (!symbol || !stocksData[symbol]) {
+        background(0);
+        fill(255, 0, 0);
+        textAlign(CENTER, CENTER);
+        textSize(32);
+        text("Error: Stock not found!", width / 2, height / 2);
+        drawButton(btnBackToStockMarket);
+        return;
+    }
+
+    const stock = stocksData[symbol];
+    const ownedQuantity = playerPortfolio[symbol] ? playerPortfolio[symbol].quantity : 0;
+
+    background(40, 70, 40); // Slightly lighter green background
+
+    fill(255);
+    textSize(width * 0.04);
+    textAlign(CENTER, TOP);
+    text(`${symbol} Stock`, width / 2, height * 0.15);
+
+    textSize(width * 0.025);
+    text(`Current Price: $${stock.price.toFixed(2)}`, width / 2, height * 0.25);
+    text(`Owned: ${ownedQuantity}`, width / 2, height * 0.32);
+    text(`Your Money: $${gameMoney.toLocaleString()}`, width / 2, height * 0.39);
+
+    // Quantity input (simulated)
+    fill(50, 50, 50);
+    noStroke();
+    const inputX = width / 2 - (width * 0.2) / 2;
+    const inputY = height * 0.5;
+    const inputWidth = width * 0.2;
+    const inputHeight = height * 0.06;
+    rect(inputX, inputY, inputWidth, inputHeight, 5);
+
+    fill(255);
+    textSize(width * 0.02);
+    textAlign(CENTER, CENTER);
+    text(buySellQuantity || 'Enter Qty', inputX + inputWidth / 2, inputY + inputHeight / 2);
+
+    // Buy / Sell / Max buttons
+    const btnBuy = { x: width * 0.35, y: height * 0.7, width: width * 0.1, height: height * 0.06, text: 'Buy', color: color(50, 180, 50) };
+    const btnSell = { x: width * 0.55, y: height * 0.7, width: width * 0.1, height: height * 0.06, text: 'Sell', color: color(220, 50, 50) };
+    const btnMaxSell = { x: width * 0.55 + width * 0.1 + 10, y: height * 0.63, width: width * 0.07, height: height * 0.04, text: 'Max', color: color(100, 100, 100) };
+    const btnMaxBuy = { x: width * 0.35 - width * 0.07 - 10, y: height * 0.63, width: width * 0.07, height: height * 0.04, text: 'Max', color: color(100, 100, 100) };
+
+    drawButton(btnBuy);
+    drawButton(btnSell);
+    drawButton(btnMaxSell);
+    drawButton(btnMaxBuy);
+
+    drawButton(btnBackToStockMarket);
+}
+
+function buyStock(symbol, quantity) {
+    if (quantity <= 0 || isNaN(quantity)) {
+        addGameMessage("Enter a valid quantity.", 'error');
+        return;
+    }
+    const stock = stocksData[symbol];
+    const cost = stock.price * quantity;
+
+    if (gameMoney >= cost) {
+        gameMoney -= cost;
+        if (!playerPortfolio[symbol]) {
+            playerPortfolio[symbol] = { quantity: 0, avgPrice: 0 };
+        }
+        // Calculate new average price
+        const totalOldCost = playerPortfolio[symbol].quantity * playerPortfolio[symbol].avgPrice;
+        playerPortfolio[symbol].quantity += quantity;
+        playerPortfolio[symbol].avgPrice = (totalOldCost + cost) / playerPortfolio[symbol].quantity;
+
+        addGameMessage(`Bought ${quantity} shares of ${symbol} for $${cost.toFixed(2)}.`, 'success');
+        addGameMessage(`New Avg Price: $${playerPortfolio[symbol].avgPrice.toFixed(2)}`, 'info');
+    } else {
+        addGameMessage("Not enough money to buy!", 'error');
+    }
+}
+
+function sellStock(symbol, quantity) {
+    if (quantity <= 0 || isNaN(quantity)) {
+        addGameMessage("Enter a valid quantity.", 'error');
+        return;
+    }
+    if (!playerPortfolio[symbol] || playerPortfolio[symbol].quantity < quantity) {
+        addGameMessage("Not enough shares to sell!", 'error');
+        return;
+    }
+    const stock = stocksData[symbol];
+    const revenue = stock.price * quantity;
+    gameMoney += revenue;
+
+    playerPortfolio[symbol].quantity -= quantity;
+
+    if (playerPortfolio[symbol].quantity === 0) {
+        delete playerPortfolio[symbol]; // Remove from portfolio if quantity is zero
+    }
+    addGameMessage(`Sold ${quantity} shares of ${symbol} for $${revenue.toFixed(2)}.`, 'success');
+}
+
+function changeRegion(newIndex) {
+    if (gameDay <= 1) { // Prevent moving on Day 1 (or other logic if needed)
+        addGameMessage("Cannot move on Day 1.", 'warning');
+        return;
+    }
+
+    if (newIndex >= 0 && newIndex < regions.length) {
+        currentRegionIndex = newIndex;
+        advanceDay(); // Moving takes a day
+        addGameMessage(`Moved to ${regions[currentRegionIndex].name}.`, 'info');
+        setGameState('stockMarket'); // Return to stock market view
+    } else {
+        addGameMessage("Invalid region selected.", 'error');
+    }
+}
+
+
+// Function to draw a generic "Back to Main Menu" button (reused for general screens)
+let btnBackToMain; // Declare globally or in relevant setup scope
+
 function drawBackButton() {
     const backButtonWidth = width * 0.3;
     const backButtonHeight = height * 0.08;
@@ -321,15 +759,13 @@ function drawBackButton() {
     textAlign(CENTER, CENTER);
     text("Back to Main Menu", backButtonX + backButtonWidth / 2, backButtonY + backButtonHeight / 2);
 
-    // Attach click event for back button
-    // Note: mousePressed() is where all clicks are handled for p5.js elements.
-    // This `if (mouseIsPressed)` block here is just for direct visual feedback for this button.
-    // The actual state change happens in mousePressed() if the button is clicked there.
+    // Attach click event for back button in mousePressed
+    // This draw function itself doesn't handle clicks, mousePressed does.
 }
 
 // Function to draw game parameters (Money, Day, Location) on the canvas (positioned left)
 function drawGameInfo() {
-    const boxWidth = width * 0.17; // Responsive width
+    const boxWidth = width * 0.22; // Responsive width
     const boxHeight = height * 0.15; // Responsive height
     const padding = width * 0.01; // Responsive padding
     const cornerRadius = 8;
@@ -471,17 +907,13 @@ function setGameState(newState) {
     if (newState === 'mainMenu') {
         gameLocation = "Main Menu";
         addGameMessage("Returned to main menu.");
+    } else if (newState === 'stockMarket') {
+        gameLocation = regions[currentRegionIndex].name;
+        addGameMessage(`Entering ${gameLocation}...`, 'info');
     } else {
-        if (newState === 'drugWars') {
-            gameLocation = "Drug Wars";
-            addGameMessage("Entering Drug Wars...", 'info');
-        } else if (newState === 'stockMarket') {
-            gameLocation = "Stock Market";
-            addGameMessage("Entering Stock Market...", 'info');
-        } else if (newState === 'gambling') {
-            gameLocation = "Gambling Hall";
-            addGameMessage("Entering Gambling Hall...", 'info');
-        }
+        // Generic messages for other states if needed
+        gameLocation = newState; // Placeholder
+        addGameMessage(`Entering ${newState}...`, 'info');
     }
 }
 
@@ -491,6 +923,8 @@ function resetGame() {
     gameDay = 1;
     gameLocation = "Main Menu";
     gameMessages = []; // Clear all messages immediately on reset
+    initializeStocks(); // Re-initialize stock prices and clear portfolio
+    playerPortfolio = {};
     addGameMessage("Game reset. Welcome back!");
     setGameState('mainMenu'); // Go back to main menu
 }
@@ -498,10 +932,11 @@ function resetGame() {
 // Example functions for game progress
 function advanceDay() {
     gameDay++;
+    advanceStockPrices(); // Update stock prices when day advances
     addGameMessage(`Advanced to Day ${gameDay}.`);
 }
 
 function updateMoney(amount) {
     gameMoney += amount;
-    addGameMessage(`Money changed by $${amount}. Current: $${gameMoney}`);
+    addGameMessage(`Money changed by $${amount}. Current: $${gameMoney.toLocaleString()}`, amount >= 0 ? 'success' : 'error');
 }
