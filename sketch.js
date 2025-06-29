@@ -59,6 +59,11 @@ let mafiaContrabandPrices = {}; // { 'Weed': 20, 'Coke': 2000, ... }
 let mafiaPlayerInventory = {}; // { 'Weed': 0, 'Coke': 5, ... }
 let mafiaBuySellQuantity = ""; // Input for buy/sell in Mafia Wars
 let selectedContraband = null; // Currently selected contraband for buy/sell operations
+let lastMafiaPriceUpdateTime = 0; // Timestamp for last Mafia price update
+const MAFIA_PRICE_UPDATE_INTERVAL = 15000; // Update prices every 15 seconds (simulating "by minute")
+
+// --- Global UI Elements ---
+let btnAdvanceDayGlobal; // New global button for advancing day
 
 // p5.js setup function - runs once when the sketch starts
 function setup() {
@@ -78,9 +83,8 @@ function setup() {
     // Setup title and button positions based on new full-screen canvas
     setupCanvasTitle();
     setupMainMenuButtons(); // Call once at start
-
-    // Set up stock market specific buttons (done once as their relative position is stable)
-    setupStockMarketButtons();
+    setupStockMarketButtons(); // Set up stock market specific buttons (done once as their relative position is stable)
+    setupGlobalUIButtons(); // Setup global buttons
 
     // Initialize the game state display (will draw the mainMenu)
     setGameState(currentGameState);
@@ -121,6 +125,7 @@ function windowResized() {
     setupCanvasTitle();
     setupMainMenuButtons(); // Re-calculate main menu button positions
     setupStockMarketButtons(); // Re-calculate stock market specific button positions
+    setupGlobalUIButtons(); // Recalculate global button positions
 }
 
 function mousePressed() {
@@ -134,7 +139,7 @@ function mousePressed() {
             resetGame();
         }
     } else if (currentGameState === 'stockMarket') {
-        if (isMouseOver(btnNextDay)) {
+        if (isMouseOver(btnNextDay)) { // This is the specific Stock Market "Next Day"
             advanceDay();
         } else if (isMouseOver(btnMoveRegion)) {
             setGameState('moveRegion');
@@ -204,7 +209,13 @@ function mousePressed() {
             }
         }
     } else if (currentGameState === 'mafiaWars') {
-        // Mafia Wars button interactions
+        // GLOBAL NEXT DAY BUTTON CHECK
+        if (isMouseOver(btnAdvanceDayGlobal)) {
+            advanceDay();
+            return;
+        }
+
+        // Mafia Wars button interactions (Back to Main Menu)
         const btnBackToMainMafia = { x: width / 2 - (width * 0.2) / 2, y: height * 0.9, width: width * 0.2, height: height * 0.07 };
         if (isMouseOver(btnBackToMainMafia)) {
             setGameState('mainMenu');
@@ -232,7 +243,7 @@ function mousePressed() {
             }
         }
 
-        // Buy/Sell buttons
+        // Buy/Sell buttons (quick buy/sell 1 for each row)
         const buySellBtnWidth = width * 0.08;
         const buySellBtnHeight = height * 0.05;
         const buySellGap = width * 0.01;
@@ -244,28 +255,28 @@ function mousePressed() {
 
         for (let i = 0; i < contrabandTypes.length; i++) {
             const item = contrabandTypes[i];
-            const buyBtnX = tableStartX + tableColWidth * 2.5 + buySellGap;
+            // Adjusting button positions to be closer to their text
+            const buyBtnX = tableX + colWidth * 2.5 + buySellGap; // Right of Owned column
             const sellBtnX = buyBtnX + buySellBtnWidth + buySellGap;
             const btnY = tableYStart + tableRowHeight * (i + 1);
 
             const buyBtn = { x: buyBtnX, y: btnY, width: buySellBtnWidth, height: buySellBtnHeight };
             const sellBtn = { x: sellBtnX, y: btnY, width: buySellBtnWidth, height: buySellBtnHeight };
 
-            // Set selectedContraband for quantity input
             if (isMouseOver(buyBtn)) {
-                selectedContraband = item;
-                mafiaBuySellQuantity = ""; // Clear quantity input
-                handleBuySellContraband(item, 'buy', 1); // Default to buy 1
+                selectedContraband = item; // Select for context
+                mafiaBuySellQuantity = ""; // Clear input
+                handleBuySellContraband(item, 'buy', 1); // Buy 1 by default
                 return;
             } else if (isMouseOver(sellBtn)) {
-                selectedContraband = item;
-                mafiaBuySellQuantity = ""; // Clear quantity input
-                handleBuySellContraband(item, 'sell', 1); // Default to sell 1
+                selectedContraband = item; // Select for context
+                mafiaBuySellQuantity = ""; // Clear input
+                handleBuySellContraband(item, 'sell', 1); // Sell 1 by default
                 return;
             }
         }
 
-        // Handle explicit quantity buy/sell button
+        // Handle explicit quantity buy/sell buttons
         const inputX = width * 0.35;
         const inputY = height * 0.65;
         const inputWidth = width * 0.15;
@@ -288,15 +299,16 @@ function mousePressed() {
                 return;
             }
         }
-        // If clicking on a table row, select that contraband for input
+        // If clicking on a table row (not the buttons), select that contraband for input
         else {
             tableStartX = width * 0.2;
             tableColWidth = width * 0.15;
             tableRowHeight = height * 0.06;
             tableYStart = height * 0.25;
 
-            // Clickable area for each row (excluding buttons)
-            const rowClickableWidth = tableColWidth * 2; // For Symbol and Price
+            // Clickable area for each row (excluding quick buy/sell buttons)
+            // It should cover the "Contraband", "Price", and "Owned" columns.
+            const rowClickableWidth = colWidth * 2.5; // Covers first three columns for selection
             for (let i = 0; i < contrabandTypes.length; i++) {
                 const item = contrabandTypes[i];
                 const rowRect = {
@@ -501,6 +513,19 @@ function drawButton(button) {
     text(button.text, button.x + button.width / 2, button.y + button.height / 2);
 }
 
+// --- Global UI Buttons ---
+function setupGlobalUIButtons() {
+    // Position Next Day button in the top right, below messages
+    btnAdvanceDayGlobal = {
+        x: width * 0.76, // To the left of message area
+        y: height * 0.02 + (MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR * height) + 10, // Below messages + some padding
+        width: width * 0.15,
+        height: height * 0.06,
+        text: 'Next Day',
+        color: color(80, 100, 150) // Blue-gray color
+    };
+}
+
 
 // --- Mafia Wars Game Logic and Drawing ---
 function initializeMafiaWars() {
@@ -512,6 +537,7 @@ function initializeMafiaWars() {
     });
     mafiaBuySellQuantity = "";
     selectedContraband = null;
+    lastMafiaPriceUpdateTime = millis(); // Initialize timestamp for dynamic prices
 }
 
 function generateMafiaPrices(location) {
@@ -546,6 +572,7 @@ function generateMafiaPrices(location) {
         let finalPrice = parseFloat((basePrice + priceChange).toFixed(2));
         prices[item] = Math.max(5, finalPrice); // Ensure price doesn't go too low
     });
+    addGameMessage(`Contraband prices updated in ${location}.`, 'info');
     return prices;
 }
 
@@ -593,8 +620,9 @@ function handleTravel(newLocation) {
 
     gameMoney -= travelCost;
     currentMafiaLocation = newLocation;
-    mafiaContrabandPrices = generateMafiaPrices(currentMafiaLocation); // New prices for new location
-    advanceDay(); // Travel consumes a day
+    mafiaContrabandPrices = generateMafiaPrices(currentMafiaLocation); // New prices for new location immediately on travel
+    // No advanceDay() here, as travel doesn't necessarily advance a game day.
+    // Day advances only through the global "Next Day" button.
     addGameMessage(`Traveled to ${newLocation} territory for $${travelCost}.`, 'info');
     triggerMafiaRandomEvent();
 }
@@ -658,16 +686,25 @@ function drawMafiaWarsScreen() {
     // Location Travel Buttons
     drawLocationButtons();
 
-    // Back button to main menu
+    // Draw the global "Next Day" button
+    drawButton(btnAdvanceDayGlobal);
+
+    // Back button to main menu (lower position to not overlap global Next Day)
     const btnBackToMainMafia = {
         x: width / 2 - (width * 0.2) / 2,
-        y: height * 0.9,
+        y: height * 0.9, // Lower position
         width: width * 0.2,
         height: height * 0.07,
         text: 'Main Menu',
         color: color(100, 100, 100)
     };
     drawButton(btnBackToMainMafia);
+
+    // Mafia Prices update by minute (every MAFIA_PRICE_UPDATE_INTERVAL milliseconds)
+    if (millis() - lastMafiaPriceUpdateTime > MAFIA_PRICE_UPDATE_INTERVAL) {
+        mafiaContrabandPrices = generateMafiaPrices(currentMafiaLocation);
+        lastMafiaPriceUpdateTime = millis();
+    }
 }
 
 function drawContrabandTable() {
@@ -1440,6 +1477,7 @@ function setGameState(newState) {
     } else if (newState === 'mafiaWars') {
         gameLocation = currentMafiaLocation; // Set location to current Mafia location
         addGameMessage("You've entered the Mafia underworld!", 'info');
+        lastMafiaPriceUpdateTime = millis(); // Reset price update timer when entering Mafia Wars
     }
     else {
         // Generic messages for other states if needed
@@ -1467,9 +1505,8 @@ function advanceDay() {
     gameDay++;
     if (currentGameState === 'stockMarket') {
         advanceStockPrices(); // Update stock prices when day advances if in stock market
-    } else if (currentGameState === 'mafiaWars') {
-        mafiaContrabandPrices = generateMafiaPrices(currentMafiaLocation); // Update contraband prices daily
     }
+    // Removed Mafia Wars price update from here, as it's now time-based.
     addGameMessage(`Advanced to Day ${gameDay}.`);
 }
 
