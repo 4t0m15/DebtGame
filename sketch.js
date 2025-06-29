@@ -1451,7 +1451,6 @@ function drawFadingMessages() {
         // Keep message if its total duration has not passed
         return elapsedTime < MESSAGE_TOTAL_DURATION;
     });
-
     // Draw active messages, stacking upwards from the bottom of the message area
     // Determine the Y position for the newest message, and then stack upwards.
     let currentY = messageAreaTop + (MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR * height) - messageLineHeight; // Start at the "bottom" of the display area for newest message
