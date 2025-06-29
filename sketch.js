@@ -142,5 +142,109 @@ function drawMainMenu() {
     drawButton(btnGambling);
     drawButton(btnNewGame);
 }
+    // Generic function to draw a button
+function drawButton(button) {
+    let btnColor = button.color;
+    let textColor = color(255); // White text
+
+    // Hover effect
+    if (isMouseOver(button)) {
+        btnColor = lerpColor(btnColor, color(255), 0.2); // Lighten on hover
+        cursor(HAND); // Change cursor to hand
+    } else {
+        cursor(ARROW); // Default cursor
+    }
+
+    fill(btnColor);
+    noStroke();
+    rect(button.x, button.y, button.width, button.height, 15); // Rounded corners
+
+    // Add a subtle border for theme
+    stroke(btnColor.levels[0] * 0.8, btnColor.levels[1] * 0.8, btnColor.levels[2] * 0.8);
+    strokeWeight(2);
+    rect(button.x, button.y, button.width, button.height, 15);
+
+
+    fill(textColor);
+    textSize(button.height * 0.4); // Responsive text size
+    textAlign(CENTER, CENTER);
+    text(button.text, button.x + button.width / 2, button.y + button.height / 2);
+}
+
+
+// --- Game Screen Drawing Functions (Placeholders) ---
+function drawDrugWarsScreen() {
+    background(100, 30, 30); // Dark red background for Drug Wars
+    textAlign(CENTER, CENTER);
+    textSize(32);
+    fill(255, 200, 200); // Light red
+    text("Drug Wars: In Progress...", width / 2, height / 2 - 40);
+    textSize(18);
+    fill(255);
+    text("This is where the Drug Wars game logic and UI will be drawn.", width / 2, height / 2 + 10);
+    // Add a "Back to Main Menu" button for testing
+    drawBackButton();
+}
+
+function drawStockMarketScreen() {
+    background(30, 100, 30); // Dark green background for Stock Market
+    textAlign(CENTER, CENTER);
+    textSize(32);
+    fill(200, 255, 200); // Light green
+    text("Stock Market: Coming Soon!", width / 2, height / 2 - 40);
+    textSize(18);
+    fill(255);
+    text("Get ready to invest.", width / 2, height / 2 + 10);
+    drawBackButton();
+}
+
+function drawGamblingScreen() {
+    background(80, 30, 100); // Dark purple background for Gambling
+    textAlign(CENTER, CENTER);
+    textSize(32);
+    fill(200, 200, 255); // Light purple
+    text("Gambling Hall: Coming Soon!", width / 2, height / 2 - 40);
+    textSize(18);
+    fill(255);
+    text("Try your luck!", width / 2, height / 2 + 10);
+    drawBackButton();
+}
+
+// Function to draw a generic "Back to Main Menu" button
+function drawBackButton() {
+    const backButtonWidth = width * 0.3;
+    const backButtonHeight = height * 0.08;
+    const backButtonX = (width - backButtonWidth) / 2;
+    const backButtonY = height * 0.85;
+
+    let btnColor = color(100, 100, 100); // Gray
+    if (mouseX > backButtonX && mouseX < backButtonX + backButtonWidth &&
+        mouseY > backButtonY && mouseY < backButtonY + backButtonHeight) {
+        btnColor = lerpColor(btnColor, color(255), 0.2);
+        cursor(HAND);
+    } else {
+        cursor(ARROW);
+    }
+
+    fill(btnColor);
+    noStroke();
+    rect(backButtonX, backButtonY, backButtonWidth, backButtonHeight, 10);
+
+    stroke(btnColor.levels[0] * 0.8, btnColor.levels[1] * 0.8, btnColor.levels[2] * 0.8);
+    strokeWeight(1);
+    rect(backButtonX, backButtonY, backButtonWidth, backButtonHeight, 10);
+
+    fill(255);
+    textSize(backButtonHeight * 0.4);
+    textAlign(CENTER, CENTER);
+    text("Back to Main Menu", backButtonX + backButtonWidth / 2, backButtonY + backButtonHeight / 2);
+
+    // Attach click event for back button
+    // Note: mousePressed() is where all clicks are handled for p5.js elements.
+    // This `if (mouseIsPressed)` block here is just for direct visual feedback for this button.
+    // The actual state change happens in mousePressed() if the button is clicked there.
+}
+
+
 
 
