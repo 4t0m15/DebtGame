@@ -19,7 +19,7 @@ const MESSAGE_HOLD_DURATION = 2000;    // milliseconds for messages to stay full
 const MESSAGE_FADE_OUT_DURATION = 1500; // milliseconds for messages to fade out
 const MESSAGE_TOTAL_DURATION = MESSAGE_FADE_IN_DURATION + MESSAGE_HOLD_DURATION + MESSAGE_FADE_OUT_DURATION;
 
-const MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR = 0.25; // Percentage of canvas height for message area
+const MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR = 0.05; // Percentage of canvas height for message area
 const MESSAGE_LINE_HEIGHT_FACTOR = 0.03; // Percentage of canvas height for each message line
 
 // Constant for blinking effect
@@ -329,7 +329,7 @@ function drawBackButton() {
 
 // Function to draw game parameters (Money, Day, Location) on the canvas (positioned left)
 function drawGameInfo() {
-    const boxWidth = width * 0.22; // Responsive width
+    const boxWidth = width * 0.17; // Responsive width
     const boxHeight = height * 0.15; // Responsive height
     const padding = width * 0.01; // Responsive padding
     const cornerRadius = 8;
@@ -338,20 +338,60 @@ function drawGameInfo() {
     const boxX = padding; // Left side
     const boxY = padding; // Top side
 
-    // Draw background box
-    fill(0, 0, 0, 180); // More opaque black for sleekness
-    noStroke();
+    // Draw background box with a subtle darker shade and a border
+    fill(30, 40, 50, 200); // Darker, slightly transparent background
+    stroke(80, 100, 120, 200); // Subtle blue-gray border
+    strokeWeight(1.5);
     rect(boxX, boxY, boxWidth, boxHeight, cornerRadius);
 
-    // Draw text
+    // Inner glow for the box
+    drawingContext.shadowOffsetX = 0;
+    drawingContext.shadowOffsetY = 0;
+    drawingContext.shadowBlur = 8; // Subtle glow
+    drawingContext.shadowColor = 'rgba(100, 150, 255, 0.2)'; // Blueish glow
+
+    rect(boxX, boxY, boxWidth, boxHeight, cornerRadius); // Redraw for shadow
+
+    drawingContext.shadowBlur = 0;
+    drawingContext.shadowColor = 'rgba(0,0,0,0)'; // Reset shadow
+
+    // Text and Icons
+    const iconSize = height * 0.025; // Responsive icon size
+    const textBaseSize = height * 0.022; // Base responsive text size, adjusted to fit
+    const lineSpacing = textBaseSize * 1.5; // Adjusted line spacing
+
     fill(255); // White text
-    const textBaseSize = height * 0.025; // Base responsive text size
+    textAlign(LEFT, CENTER); // Center text vertically within its line
+
+    // Text shadow for readability on text
+    drawingContext.shadowOffsetX = 0;
+    drawingContext.shadowOffsetY = 0;
+    drawingContext.shadowBlur = 3;
+    drawingContext.shadowColor = 'rgba(0,0,0,0.5)';
+
+
+    let currentTextY = boxY + padding + textBaseSize * 0.8; // Start point for first line
+
+    // Money
     textSize(textBaseSize);
-    textAlign(LEFT, TOP);
-    text(`Money: $${gameMoney.toLocaleString()}`, boxX + padding, boxY + padding);
-    textSize(textBaseSize * 0.9); // Slightly smaller for other lines
-    text(`Day: ${gameDay}`, boxX + padding, boxY + padding + textBaseSize * 1.4);
-    text(`Location: ${gameLocation}`, boxX + padding, boxY + padding + textBaseSize * 2.8);
+    text('💰', boxX + padding, currentTextY); // Icon
+    text(`Money: $${gameMoney.toLocaleString()}`, boxX + padding + iconSize + 5, currentTextY);
+
+    currentTextY += lineSpacing;
+
+    // Day
+    text('🗓️', boxX + padding, currentTextY); // Icon
+    text(`Day: ${gameDay}`, boxX + padding + iconSize + 5, currentTextY);
+
+    currentTextY += lineSpacing;
+
+    // Location
+    text('📍', boxX + padding, currentTextY); // Icon
+    text(`Location: ${gameLocation}`, boxX + padding + iconSize + 5, currentTextY);
+
+    // Reset shadow
+    drawingContext.shadowBlur = 0;
+    drawingContext.shadowColor = 'rgba(0,0,0,0)';
 }
 
 // Function to draw game messages on the canvas (positioned right, smaller, sleek, fading)
@@ -373,6 +413,13 @@ function drawFadingMessages() {
     // Draw active messages, stacking upwards from the bottom of the message area
     // Determine the Y position for the newest message, and then stack upwards.
     let currentY = messageAreaTop + (MESSAGE_MAX_DISPLAY_HEIGHT_FACTOR * height) - messageLineHeight; // Start at the "bottom" of the display area for newest message
+
+    // Text shadow for readability on message text
+    drawingContext.shadowOffsetX = 0;
+    drawingContext.shadowOffsetY = 0;
+    drawingContext.shadowBlur = 2; // Subtle shadow
+    drawingContext.shadowColor = 'rgba(0,0,0,0.7)';
+
 
     for (let i = gameMessages.length - 1; i >= 0; i--) { // Loop from newest to oldest
         const msg = gameMessages[i];
@@ -406,6 +453,9 @@ function drawFadingMessages() {
             break;
         }
     }
+    // Reset shadow
+    drawingContext.shadowBlur = 0;
+    drawingContext.shadowColor = 'rgba(0,0,0,0)';
 }
 
 
