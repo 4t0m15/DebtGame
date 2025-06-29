@@ -5,12 +5,12 @@ let gameLocation = "Main Menu"; // Start at the main menu
 let gameMessages = []; // Each message will be {text: "...", type: "...", timestamp: millis()}
 
 // Game state management
-let currentGameState = 'mainMenu'; // 'mainMenu', 'drugWars', 'stockMarket', 'gamblingMenu', 'wallet', 'moveRegion', 'buySellStock', 'gamblingRoulette', 'gamblingDice', 'gamblingHighLow'
+let currentGameState = 'mainMenu'; // 'mainMenu', 'mafiaWars', 'stockMarket', 'wallet', 'moveRegion', 'buySellStock'
 let selectedStockSymbol = null; // Used for the 'buySellStock' state
-let buySellQuantity = ""; // String for simulated text input quantity
+let buySellQuantity = ""; // String for simulated text input quantity (for stocks)
 
 // Variables for main menu buttons (their positions and sizes)
-let btnDrugWars, btnStockMarket, btnGambling, btnNewGame;
+let btnMafiaWars, btnStockMarket, btnNewGame;
 
 // Variables for Canvas-drawn game title
 let gameCanvasTitle;
@@ -50,41 +50,15 @@ let stockTiles = []; // Array of objects for clickable stock tiles
 // Buttons for navigation
 let btnBackToStockMarket;
 let btnBackToMain; // Declared globally for access
-let btnBackToGamblingMenu; // Back button for individual gambling games
 
-// --- Gambling Variables ---
-let gamblingBetAmount = ""; // Current bet amount input
-let gamblingResultText = ""; // Text to display game result
-let gamblingOutcomeColor = color(255); // Color for game result text
-
-// Roulette specific
-let rouletteWheelValue = -1; // -1 for not spun, 0 for green, 1-36 for numbers
-let rouletteBetType = 'none'; // 'red', 'black', 'green', 'even', 'odd', 'number'
-let rouletteLastSpinTime = 0;
-const ROULETTE_SPIN_DURATION = 1500; // Time for spin animation
-
-// Dice specific
-let diceRollValue1 = 1;
-let diceRollValue2 = 1;
-let diceBetType = 'none'; // 'over7', 'under7', 'exact7'
-let diceLastRollTime = 0;
-const DICE_ROLL_DURATION = 1000; // Time for roll animation
-
-// High-Low specific
-let highLowCard1 = null;
-let highLowCard2 = null;
-let highLowChoice = 'none'; // 'high', 'low'
-let highLowRevealed = false; // True if second card is revealed
-const CARD_SUITS = ['♠', '♣', '♥', '♦'];
-const CARD_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-// Values for High-Low (Aces high)
-const CARD_VALUES = {
-    '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
-    'J': 11, 'Q': 12, 'K': 13, 'A': 14
-};
-let highLowLastGameTime = 0;
-const HIGHLOW_REVEAL_DURATION = 1000; // Time for second card reveal
-
+// --- Mafia Wars Variables ---
+const mafiaLocations = ['New York', 'Los Angeles', 'Chicago', 'Miami', 'Houston', 'Denver'];
+const contrabandTypes = ['Weed', 'Coke', 'Acid', 'Heroin', 'Meth']; // Renamed from drugTypes
+let currentMafiaLocation = 'New York';
+let mafiaContrabandPrices = {}; // { 'Weed': 20, 'Coke': 2000, ... }
+let mafiaPlayerInventory = {}; // { 'Weed': 0, 'Coke': 5, ... }
+let mafiaBuySellQuantity = ""; // Input for buy/sell in Mafia Wars
+let selectedContraband = null; // Currently selected contraband for buy/sell operations
 
 // p5.js setup function - runs once when the sketch starts
 function setup() {
@@ -95,6 +69,9 @@ function setup() {
     // Initialize stock data
     initializeStocks();
 
+    // Initialize Mafia Wars data
+    initializeMafiaWars();
+
     // Initial game message
     addGameMessage("Welcome to Debt Game!");
 
@@ -104,9 +81,6 @@ function setup() {
 
     // Set up stock market specific buttons (done once as their relative position is stable)
     setupStockMarketButtons();
-
-    // Set up gambling specific buttons (done once)
-    setupGamblingButtons();
 
     // Initialize the game state display (will draw the mainMenu)
     setGameState(currentGameState);
@@ -122,18 +96,10 @@ function draw() {
     // Depending on the current game state, draw different things
     if (currentGameState === 'mainMenu') {
         drawMainMenu();
-    } else if (currentGameState === 'drugWars') {
-        drawDrugWarsScreen();
+    } else if (currentGameState === 'mafiaWars') {
+        drawMafiaWarsScreen();
     } else if (currentGameState === 'stockMarket') {
         drawStockMarketScreen();
-    } else if (currentGameState === 'gamblingMenu') {
-        drawGamblingMenu();
-    } else if (currentGameState === 'gamblingRoulette') {
-        drawRouletteGame();
-    } else if (currentGameState === 'gamblingDice') {
-        drawDiceGame();
-    } else if (currentGameState === 'gamblingHighLow') {
-        drawHighLowGame();
     }
     else if (currentGameState === 'wallet') {
         drawWalletScreen();
@@ -155,18 +121,16 @@ function windowResized() {
     setupCanvasTitle();
     setupMainMenuButtons(); // Re-calculate main menu button positions
     setupStockMarketButtons(); // Re-calculate stock market specific button positions
-    setupGamblingButtons(); // Re-calculate gambling buttons
 }
 
 function mousePressed() {
     if (currentGameState === 'mainMenu') {
-        if (isMouseOver(btnDrugWars)) {
-            setGameState('drugWars');
+        if (isMouseOver(btnMafiaWars)) {
+            setGameState('mafiaWars');
         } else if (isMouseOver(btnStockMarket)) {
             setGameState('stockMarket');
-        } else if (isMouseOver(btnGambling)) {
-            setGameState('gamblingMenu');
-        } else if (isMouseOver(btnNewGame)) {
+        }
+        else if (isMouseOver(btnNewGame)) {
             resetGame();
         }
     } else if (currentGameState === 'stockMarket') {
@@ -239,130 +203,134 @@ function mousePressed() {
                 buySellQuantity = "0";
             }
         }
-    } else if (currentGameState === 'gamblingMenu') {
-        const btnRoulette = { x: width / 2 - (width * 0.45) / 2, y: height * 0.25 + 0 * (height * 0.08 + height * 0.02), width: width * 0.45, height: height * 0.08 };
-        const btnDice = { x: width / 2 - (width * 0.45) / 2, y: height * 0.25 + 1 * (height * 0.08 + height * 0.02), width: width * 0.45, height: height * 0.08 };
-        const btnHighLow = { x: width / 2 - (width * 0.45) / 2, y: height * 0.25 + 2 * (height * 0.08 + height * 0.02), width: width * 0.45, height: height * 0.08 };
-
-        if (isMouseOver(btnRoulette)) {
-            setGameState('gamblingRoulette');
-            gamblingBetAmount = ""; // Reset bet input
-            rouletteWheelValue = -1; // Reset roulette state
-            rouletteBetType = 'none';
-            gamblingResultText = "";
-        } else if (isMouseOver(btnDice)) {
-            setGameState('gamblingDice');
-            gamblingBetAmount = ""; // Reset bet input
-            diceRollValue1 = 1; // Reset dice state
-            diceRollValue2 = 1;
-            diceBetType = 'none';
-            gamblingResultText = "";
-        } else if (isMouseOver(btnHighLow)) {
-            setGameState('gamblingHighLow');
-            gamblingBetAmount = ""; // Reset bet input
-            highLowCard1 = null; // Reset high-low state
-            highLowCard2 = null;
-            highLowRevealed = false;
-            gamblingResultText = "";
-            startHighLow(); // Start a new round
-        } else if (isMouseOver(btnBackToMain)) {
+    } else if (currentGameState === 'mafiaWars') {
+        // Mafia Wars button interactions
+        const btnBackToMainMafia = { x: width / 2 - (width * 0.2) / 2, y: height * 0.9, width: width * 0.2, height: height * 0.07 };
+        if (isMouseOver(btnBackToMainMafia)) {
             setGameState('mainMenu');
+            return;
         }
-    } else if (currentGameState === 'gamblingRoulette') {
-        const betAmt = int(gamblingBetAmount);
-        const btnRed = { x: width * 0.3, y: height * 0.65, width: width * 0.1, height: height * 0.06 };
-        const btnBlack = { x: width * 0.45, y: height * 0.65, width: width * 0.1, height: height * 0.06 };
-        const btnGreen = { x: width * 0.6, y: height * 0.65, width: width * 0.1, height: height * 0.06 };
-        const btnSpin = { x: width / 2 - (width * 0.15) / 2, y: height * 0.75, width: width * 0.15, height: height * 0.08 };
 
-        if (isMouseOver(btnRed) && betAmt > 0) spinRoulette(betAmt, 'red');
-        else if (isMouseOver(btnBlack) && betAmt > 0) spinRoulette(betAmt, 'black');
-        else if (isMouseOver(btnGreen) && betAmt > 0) spinRoulette(betAmt, 'green');
-        else if (isMouseOver(btnSpin) && rouletteBetType !== 'none' && betAmt > 0) { // Only spin if a bet type is selected
-            spinRoulette(betAmt, rouletteBetType); // Use the currently selected bet type
-        }
-        else if (isMouseOver(btnBackToGamblingMenu)) {
-            setGameState('gamblingMenu');
-        } else if (betAmt <= 0 && isMouseOver(btnSpin)) {
-             addGameMessage("Please enter a bet amount.", 'warning');
-        } else if (betAmt > 0 && rouletteBetType === 'none' && isMouseOver(btnSpin)) {
-            addGameMessage("Please select a bet type (Red, Black, or Green).", 'warning');
-        }
-    } else if (currentGameState === 'gamblingDice') {
-        const betAmt = int(gamblingBetAmount);
-        const btnUnder7 = { x: width * 0.3, y: height * 0.65, width: width * 0.15, height: height * 0.06 };
-        const btnExact7 = { x: width * 0.475, y: height * 0.65, width: width * 0.15, height: height * 0.06 };
-        const btnOver7 = { x: width * 0.65, y: height * 0.65, width: width * 0.15, height: height * 0.06 };
-        const btnRoll = { x: width / 2 - (width * 0.15) / 2, y: height * 0.75, width: width * 0.15, height: height * 0.08 };
+        // Location buttons
+        const locBtnWidth = width * 0.15;
+        const locBtnHeight = height * 0.06;
+        const locGapX = width * 0.01;
+        const locGapY = height * 0.01;
+        const locStartX = width / 2 - (locBtnWidth * 3 + locGapX * 2) / 2; // Adjust for 3 cols
+        const locStartY = height * 0.75;
 
-        if (isMouseOver(btnUnder7) && betAmt > 0) rollDice(betAmt, 'under7');
-        else if (isMouseOver(btnExact7) && betAmt > 0) rollDice(betAmt, 'exact7');
-        else if (isMouseOver(btnOver7) && betAmt > 0) rollDice(betAmt, 'over7');
-        else if (isMouseOver(btnRoll) && diceBetType !== 'none' && betAmt > 0) {
-            rollDice(betAmt, diceBetType);
-        }
-        else if (isMouseOver(btnBackToGamblingMenu)) {
-            setGameState('gamblingMenu');
-        } else if (betAmt <= 0 && isMouseOver(btnRoll)) {
-             addGameMessage("Please enter a bet amount.", 'warning');
-        } else if (betAmt > 0 && diceBetType === 'none' && isMouseOver(btnRoll)) {
-            addGameMessage("Please select a bet type (Under 7, Exact 7, or Over 7).", 'warning');
-        }
-    } else if (currentGameState === 'gamblingHighLow') {
-        const betAmt = int(gamblingBetAmount);
-        const btnHigh = { x: width * 0.35, y: height * 0.7, width: width * 0.1, height: height * 0.06 };
-        const btnLow = { x: width * 0.55, y: height * 0.7, width: width * 0.1, height: height * 0.06 };
-        const btnDeal = { x: width / 2 - (width * 0.15) / 2, y: height * 0.8, width: width * 0.15, height: height * 0.08 };
-
-        if (!highLowRevealed && highLowCard1) { // Only allow High/Low choice if cards not revealed AND first card is drawn
-            if (isMouseOver(btnHigh) && betAmt > 0) placeHighLowBet(betAmt, 'high');
-            else if (isMouseOver(btnLow) && betAmt > 0) placeHighLowBet(betAmt, 'low');
-            else if (betAmt <= 0 && (isMouseOver(btnHigh) || isMouseOver(btnLow))) {
-                 addGameMessage("Please enter a bet amount.", 'warning');
+        for (let i = 0; i < mafiaLocations.length; i++) {
+            const col = i % 3;
+            const row = floor(i / 3);
+            const btnX = locStartX + col * (locBtnWidth + locGapX);
+            const btnY = locStartY + row * (locBtnHeight + locGapY);
+            const btnRect = { x: btnX, y: btnY, width: locBtnWidth, height: locBtnHeight };
+            
+            if (isMouseOver(btnRect)) {
+                handleTravel(mafiaLocations[i]);
+                return; // Stop after handling one click
             }
         }
-        
-        if (isMouseOver(btnDeal)) {
-            if (highLowRevealed || !highLowCard1) { // Allow new game if revealed or initial state
-                startHighLow();
-                gamblingBetAmount = ""; // Reset bet amount
-                gamblingResultText = ""; // Clear result text
-            } else { // It's the "Choose!" button
-                addGameMessage("Please choose High or Low for your bet.", 'warning');
-            }
-        } else if (isMouseOver(btnBackToGamblingMenu)) {
-            setGameState('gamblingMenu');
-        }
-    }
-    // Generic back button for drugWars
-    else if (currentGameState === 'drugWars') {
-        const backButtonWidth = width * 0.3;
-        const backButtonHeight = height * 0.08;
-        const backButtonX = (width - backButtonWidth) / 2;
-        const backButtonY = height * 0.85;
 
-        if (mouseX > backButtonX && mouseX < backButtonX + backButtonWidth &&
-            mouseY > backButtonY && mouseY < backButtonY + backButtonHeight) {
-            setGameState('mainMenu');
+        // Buy/Sell buttons
+        const buySellBtnWidth = width * 0.08;
+        const buySellBtnHeight = height * 0.05;
+        const buySellGap = width * 0.01;
+
+        let tableStartX = width * 0.2;
+        let tableColWidth = width * 0.15;
+        let tableRowHeight = height * 0.06;
+        let tableYStart = height * 0.25;
+
+        for (let i = 0; i < contrabandTypes.length; i++) {
+            const item = contrabandTypes[i];
+            const buyBtnX = tableStartX + tableColWidth * 2.5 + buySellGap;
+            const sellBtnX = buyBtnX + buySellBtnWidth + buySellGap;
+            const btnY = tableYStart + tableRowHeight * (i + 1);
+
+            const buyBtn = { x: buyBtnX, y: btnY, width: buySellBtnWidth, height: buySellBtnHeight };
+            const sellBtn = { x: sellBtnX, y: btnY, width: buySellBtnWidth, height: buySellBtnHeight };
+
+            // Set selectedContraband for quantity input
+            if (isMouseOver(buyBtn)) {
+                selectedContraband = item;
+                mafiaBuySellQuantity = ""; // Clear quantity input
+                handleBuySellContraband(item, 'buy', 1); // Default to buy 1
+                return;
+            } else if (isMouseOver(sellBtn)) {
+                selectedContraband = item;
+                mafiaBuySellQuantity = ""; // Clear quantity input
+                handleBuySellContraband(item, 'sell', 1); // Default to sell 1
+                return;
+            }
+        }
+
+        // Handle explicit quantity buy/sell button
+        const inputX = width * 0.35;
+        const inputY = height * 0.65;
+        const inputWidth = width * 0.15;
+        const inputHeight = height * 0.06;
+
+        const buyWithQtyBtn = { x: inputX + inputWidth + 10, y: inputY, width: buySellBtnWidth * 1.2, height: inputHeight };
+        const sellWithQtyBtn = { x: buyWithQtyBtn.x + buyWithQtyBtn.width + 10, y: inputY, width: buySellBtnWidth * 1.2, height: inputHeight };
+
+        if (selectedContraband && mafiaBuySellQuantity !== "" && !isNaN(int(mafiaBuySellQuantity))) {
+            const qty = int(mafiaBuySellQuantity);
+            if (isMouseOver(buyWithQtyBtn)) {
+                handleBuySellContraband(selectedContraband, 'buy', qty);
+                mafiaBuySellQuantity = "";
+                selectedContraband = null; // Deselect after action
+                return;
+            } else if (isMouseOver(sellWithQtyBtn)) {
+                handleBuySellContraband(selectedContraband, 'sell', qty);
+                mafiaBuySellQuantity = "";
+                selectedContraband = null; // Deselect after action
+                return;
+            }
+        }
+        // If clicking on a table row, select that contraband for input
+        else {
+            tableStartX = width * 0.2;
+            tableColWidth = width * 0.15;
+            tableRowHeight = height * 0.06;
+            tableYStart = height * 0.25;
+
+            // Clickable area for each row (excluding buttons)
+            const rowClickableWidth = tableColWidth * 2; // For Symbol and Price
+            for (let i = 0; i < contrabandTypes.length; i++) {
+                const item = contrabandTypes[i];
+                const rowRect = {
+                    x: tableStartX,
+                    y: tableYStart + tableRowHeight * (i + 1),
+                    width: rowClickableWidth,
+                    height: tableRowHeight
+                };
+                if (isMouseOver(rowRect)) {
+                    selectedContraband = item;
+                    mafiaBuySellQuantity = ""; // Clear input when new item selected
+                    addGameMessage(`Selected ${item}. Enter quantity below to buy/sell.`, 'info');
+                    return;
+                }
+            }
         }
     }
 }
 
 function keyPressed() {
-    // Only allow number input for gambling bet amount, not stock quantity anymore in this focused context
-    if (currentGameState === 'gamblingRoulette' || currentGameState === 'gamblingDice' || currentGameState === 'gamblingHighLow') {
-        if (keyCode === BACKSPACE) {
-            gamblingBetAmount = gamblingBetAmount.substring(0, gamblingBetAmount.length - 1);
-        } else if (key >= '0' && key <= '9') {
-            gamblingBetAmount += key;
-        }
-    }
-    // Keep stock quantity input if user is still on buy/sell screen
+    // Stock buy/sell quantity input
     if (currentGameState === 'buySellStock') {
-         if (keyCode === BACKSPACE) {
+        if (keyCode === BACKSPACE) {
             buySellQuantity = buySellQuantity.substring(0, buySellQuantity.length - 1);
         } else if (key >= '0' && key <= '9') {
             buySellQuantity += key;
+        }
+    }
+    // Mafia Wars buy/sell quantity input
+    else if (currentGameState === 'mafiaWars' && selectedContraband !== null) {
+        if (keyCode === BACKSPACE) {
+            mafiaBuySellQuantity = mafiaBuySellQuantity.substring(0, mafiaBuySellQuantity.length - 1);
+        } else if (key >= '0' && key <= '9') {
+            mafiaBuySellQuantity += key;
         }
     }
 }
@@ -417,18 +385,19 @@ function setupMainMenuButtons() {
     const buttonHeight = usableHeightForMenu * 0.12;
     const gap = usableHeightForMenu * 0.03;
 
-    // Center the group of 4 buttons vertically within the available menu area
-    const totalButtonsHeight = 4 * buttonHeight + 3 * gap;
+    // Center the group of buttons vertically within the available menu area
+    // Now there are 3 buttons: Mafia Wars, Stock Market, New Game
+    const totalButtonsHeight = 3 * buttonHeight + 2 * gap; // Reduced number of buttons
     const startY = menuAreaYStart + (usableHeightForMenu - totalButtonsHeight) / 2;
     const centerX = width / 2;
 
 
-    btnDrugWars = {
+    btnMafiaWars = { // Renamed from btnDrugWars
         x: centerX - buttonWidth / 2,
         y: startY,
         width: buttonWidth,
         height: buttonHeight,
-        text: '💰 Drug Wars',
+        text: '🔪 Mafia Wars', // Changed text
         color: color(220, 50, 50) // Red
     };
 
@@ -441,18 +410,9 @@ function setupMainMenuButtons() {
         color: color(50, 180, 50) // Green
     };
 
-    btnGambling = {
-        x: centerX - buttonWidth / 2,
-        y: startY + 2 * (buttonHeight + gap),
-        width: buttonWidth,
-        height: buttonHeight,
-        text: '🎲 Gambling Hall',
-        color: color(150, 50, 220) // Purple
-    };
-
     btnNewGame = {
         x: centerX - (buttonWidth * 0.8) / 2, // Slightly narrower
-        y: startY + 3 * (buttonHeight + gap) + gap * 2, // Below other buttons, more gap
+        y: startY + 2 * (buttonHeight + gap) + gap * 2, // Position adjusted for 3 buttons
         width: buttonWidth * 0.8,
         height: buttonHeight * 0.7, // Slightly smaller
         text: 'Start New Game',
@@ -481,9 +441,8 @@ function drawMainMenu() {
     text("Make a Million Dollars!", width / 2, height * 0.38); // Adjusted Y position
 
     // Draw buttons
-    drawButton(btnDrugWars);
+    drawButton(btnMafiaWars);
     drawButton(btnStockMarket);
-    drawButton(btnGambling);
     drawButton(btnNewGame);
 }
     // Generic function to draw a button with enhanced styling
@@ -543,19 +502,295 @@ function drawButton(button) {
 }
 
 
-// --- Game Screen Drawing Functions (Placeholders) ---
-function drawDrugWarsScreen() {
-    background(100, 30, 30); // Dark red background for Drug Wars
-    textAlign(CENTER, CENTER);
-    textSize(32);
-    fill(255, 200, 200); // Light red
-    text("Drug Wars: In Progress...", width / 2, height / 2 - 40);
-    textSize(18);
-    fill(255);
-    text("This is where the Drug Wars game logic and UI will be drawn.", width / 2, height / 2 + 10);
-    // Add a "Back to Main Menu" button for testing
-    drawBackButton();
+// --- Mafia Wars Game Logic and Drawing ---
+function initializeMafiaWars() {
+    currentMafiaLocation = 'New York';
+    mafiaContrabandPrices = generateMafiaPrices(currentMafiaLocation);
+    mafiaPlayerInventory = {};
+    contrabandTypes.forEach(type => {
+        mafiaPlayerInventory[type] = 0; // Initialize all contraband to 0
+    });
+    mafiaBuySellQuantity = "";
+    selectedContraband = null;
 }
+
+function generateMafiaPrices(location) {
+    const prices = {};
+    contrabandTypes.forEach(item => {
+        let basePrice;
+        // Base price ranges for different contraband types
+        switch (item) {
+            case 'Weed': basePrice = random(10, 50); break;
+            case 'Coke': basePrice = random(1000, 5000); break;
+            case 'Acid': basePrice = random(200, 800); break;
+            case 'Heroin': basePrice = random(5000, 15000); break;
+            case 'Meth': basePrice = random(500, 2000); break;
+            default: basePrice = random(50, 200);
+        }
+
+        // Location-specific price adjustments
+        if (location === 'New York') {
+            if (item === 'Weed') basePrice *= random(0.8, 1.2); // Fluctuation
+            if (item === 'Coke') basePrice *= random(1.1, 1.5); // Higher
+        } else if (location === 'Los Angeles') {
+            if (item === 'Acid') basePrice *= random(0.7, 1.1); // Lower
+            if (item === 'Meth') basePrice *= random(1.0, 1.3); // Higher
+        } else if (location === 'Chicago') {
+            if (item === 'Heroin') basePrice *= random(0.9, 1.3); // Moderate
+        }
+        // Add more location-specific logic as needed
+
+        // Add volatility
+        const volatility = random(0.1, 0.3); // 10-30% price fluctuation
+        let priceChange = basePrice * volatility * random(-1, 1);
+        let finalPrice = parseFloat((basePrice + priceChange).toFixed(2));
+        prices[item] = Math.max(5, finalPrice); // Ensure price doesn't go too low
+    });
+    return prices;
+}
+
+function handleBuySellContraband(item, type, quantity) {
+    if (quantity <= 0 || isNaN(quantity)) {
+        addGameMessage("Enter a valid quantity.", 'error');
+        return;
+    }
+    const price = mafiaContrabandPrices[item];
+    const cost = price * quantity;
+
+    if (type === 'buy') {
+        if (gameMoney >= cost) {
+            gameMoney -= cost;
+            mafiaPlayerInventory[item] += quantity;
+            addGameMessage(`Acquired ${quantity} ${item} for $${cost.toFixed(2)}.`, 'success');
+            updateMoney(0); // Trigger display update
+        } else {
+            addGameMessage("Not enough money for that acquisition!", 'error');
+        }
+    } else { // sell
+        if (mafiaPlayerInventory[item] >= quantity) {
+            const revenue = price * quantity;
+            gameMoney += revenue;
+            mafiaPlayerInventory[item] -= quantity;
+            addGameMessage(`Offloaded ${quantity} ${item} for $${revenue.toFixed(2)}.`, 'success');
+            updateMoney(0); // Trigger display update
+        } else {
+            addGameMessage(`You don't have ${quantity} units of ${item} to offload!`, 'error');
+        }
+    }
+}
+
+function handleTravel(newLocation) {
+    if (newLocation === currentMafiaLocation) {
+        addGameMessage("You're already in this territory!", 'warning');
+        return;
+    }
+
+    const travelCost = floor(random(50, 200)); // Random travel cost
+    if (gameMoney < travelCost) {
+        addGameMessage(`Not enough money to travel to ${newLocation}! Need $${travelCost}.`, 'error');
+        return;
+    }
+
+    gameMoney -= travelCost;
+    currentMafiaLocation = newLocation;
+    mafiaContrabandPrices = generateMafiaPrices(currentMafiaLocation); // New prices for new location
+    advanceDay(); // Travel consumes a day
+    addGameMessage(`Traveled to ${newLocation} territory for $${travelCost}.`, 'info');
+    triggerMafiaRandomEvent();
+}
+
+function triggerMafiaRandomEvent() {
+    const eventChance = random(100);
+    if (eventChance < 20) { // 20% chance of an event
+        const eventType = floor(random(1, 4)); // 1, 2, or 3
+        switch (eventType) {
+            case 1: // Rival Gang Ambush
+                const loss = floor(random(100, 500));
+                gameMoney -= loss;
+                addGameMessage(`Rival gang ambush! You lost $${loss}.`, 'critical');
+                // Optionally, confiscate some inventory
+                if (random() < 0.5 && Object.values(mafiaPlayerInventory).some(q => q > 0)) {
+                    const availableContraband = contrabandTypes.filter(type => mafiaPlayerInventory[type] > 0);
+                    if (availableContraband.length > 0) {
+                        const randomItem = random(availableContraband);
+                        const confiscatedQty = floor(random(1, Math.min(mafiaPlayerInventory[randomItem], 5) + 1));
+                        mafiaPlayerInventory[randomItem] -= confiscatedQty;
+                        addGameMessage(`Rival gang seized ${confiscatedQty} ${randomItem}!`, 'critical');
+                    }
+                }
+                break;
+            case 2: // Inside Tip / Good Deal
+                const goodDealItem = random(contrabandTypes);
+                const oldPrice = mafiaContrabandPrices[goodDealItem];
+                const newPrice = parseFloat((oldPrice * random(0.4, 0.7)).toFixed(2)); // 40-70% of original
+                mafiaContrabandPrices[goodDealItem] = Math.max(5, newPrice);
+                addGameMessage(`Inside tip! ${goodDealItem} is cheap at $${mafiaContrabandPrices[goodDealItem].toFixed(2)}! (Originally $${oldPrice.toFixed(2)})`, 'success');
+                break;
+            case 3: // Unforeseen Expenses / Protection Racket
+                const expenses = floor(random(50, 300));
+                gameMoney -= expenses;
+                addGameMessage(`Unforeseen expenses incurred: $${expenses}!`, 'critical');
+                break;
+        }
+    }
+}
+
+
+function drawMafiaWarsScreen() {
+    background(30, 10, 10); // Darker, grittier background for Mafia Wars
+
+    fill(240, 245, 250);
+    textSize(width * 0.035);
+    textAlign(CENTER, TOP);
+    text("Mafia Wars", width / 2, height * 0.15);
+
+    // Current Location Display
+    fill(255, 200, 0); // Gold color
+    textSize(width * 0.025);
+    text(`Current Territory: ${currentMafiaLocation}`, width / 2, height * 0.2);
+
+    // Contraband Price and Inventory Table
+    drawContrabandTable();
+
+    // Buy/Sell Input and Buttons
+    drawBuySellInput();
+
+    // Location Travel Buttons
+    drawLocationButtons();
+
+    // Back button to main menu
+    const btnBackToMainMafia = {
+        x: width / 2 - (width * 0.2) / 2,
+        y: height * 0.9,
+        width: width * 0.2,
+        height: height * 0.07,
+        text: 'Main Menu',
+        color: color(100, 100, 100)
+    };
+    drawButton(btnBackToMainMafia);
+}
+
+function drawContrabandTable() {
+    const tableX = width * 0.2;
+    const tableY = height * 0.25;
+    const colWidth = width * 0.15;
+    const rowHeight = height * 0.06;
+
+    // Table Header
+    fill(40, 40, 40, 200); // Dark header background
+    noStroke();
+    rect(tableX, tableY, colWidth * 3.5, rowHeight, 8, 8, 0, 0); // Rounded top corners
+
+    fill(255, 230, 0); // Gold text
+    textSize(height * 0.025);
+    textAlign(CENTER, CENTER);
+    text("Contraband", tableX + colWidth * 0.5, tableY + rowHeight / 2);
+    text("Price", tableX + colWidth * 1.5, tableY + rowHeight / 2);
+    text("Owned", tableX + colWidth * 2.5, tableY + rowHeight / 2);
+
+    // Table Rows
+    for (let i = 0; i < contrabandTypes.length; i++) {
+        const item = contrabandTypes[i];
+        const yPos = tableY + rowHeight * (i + 1);
+
+        // Highlight selected row
+        if (selectedContraband === item) {
+            fill(60, 20, 20, 200); // Reddish highlight
+        } else {
+            fill(20, 20, 20, 180); // Dark row background
+        }
+        noStroke();
+        rect(tableX, yPos, colWidth * 3.5, rowHeight); // Draw row background
+
+        // Item Data
+        fill(240); // White text
+        textSize(height * 0.02);
+        textAlign(CENTER, CENTER);
+        text(item, tableX + colWidth * 0.5, yPos + rowHeight / 2);
+        text(`$${mafiaContrabandPrices[item].toFixed(2)}`, tableX + colWidth * 1.5, yPos + rowHeight / 2);
+        text(mafiaPlayerInventory[item], tableX + colWidth * 2.5, yPos + rowHeight / 2);
+
+        // Buy/Sell buttons for each row (quick buy/sell 1)
+        const buyBtn = { x: tableX + colWidth * 3.0 + 5, y: yPos + rowHeight * 0.1, width: colWidth * 0.4, height: rowHeight * 0.4 };
+        const sellBtn = { x: tableX + colWidth * 3.0 + 5, y: yPos + rowHeight * 0.5, width: colWidth * 0.4, height: rowHeight * 0.4 };
+
+        drawButton({ ...buyBtn, text: 'Buy', color: color(50, 150, 50) });
+        drawButton({ ...sellBtn, text: 'Sell', color: color(150, 50, 50) });
+    }
+
+    // Border for the entire table
+    noFill();
+    stroke(100, 100, 100);
+    strokeWeight(1);
+    rect(tableX, tableY, colWidth * 3.5, rowHeight * (contrabandTypes.length + 1), 8);
+}
+
+
+function drawBuySellInput() {
+    const inputX = width * 0.35;
+    const inputY = height * 0.65;
+    const inputWidth = width * 0.15;
+    const inputHeight = height * 0.06;
+
+    // Label for input
+    fill(240);
+    textSize(width * 0.018);
+    textAlign(RIGHT, CENTER);
+    text(`Quantity for ${selectedContraband || '...'}:`, inputX - 10, inputY + inputHeight / 2); // Position label to the left of input
+
+    // Input field background
+    fill(30, 40, 50);
+    stroke(100, 115, 130);
+    strokeWeight(1);
+    rect(inputX, inputY, inputWidth, inputHeight, 8);
+
+    fill(240, 245, 250);
+    textSize(width * 0.02);
+    textAlign(CENTER, CENTER);
+    text(mafiaBuySellQuantity || 'Enter Qty', inputX + inputWidth / 2, inputY + inputHeight / 2);
+
+    // Buy/Sell buttons with quantity
+    const buySellBtnWidth = width * 0.08;
+    const buySellBtnHeight = inputHeight;
+    const buyWithQtyBtn = { x: inputX + inputWidth + 10, y: inputY, width: buySellBtnWidth, height: buySellBtnHeight, text: 'Buy Qty', color: color(50, 180, 50) };
+    const sellWithQtyBtn = { x: buyWithQtyBtn.x + buyWithQtyBtn.width + 10, y: inputY, width: buySellBtnWidth, height: buySellBtnHeight, text: 'Sell Qty', color: color(220, 50, 50) };
+
+    drawButton(buyWithQtyBtn);
+    drawButton(sellWithQtyBtn);
+}
+
+
+function drawLocationButtons() {
+    const locBtnWidth = width * 0.15;
+    const locBtnHeight = height * 0.06;
+    const locGapX = width * 0.01;
+    const locGapY = height * 0.01;
+    
+    // Calculate start X to center 3 columns
+    const locStartX = width / 2 - (locBtnWidth * 3 + locGapX * 2) / 2;
+    const locStartY = height * 0.75; // Position below input/buy-sell area
+
+    fill(240, 245, 250);
+    textSize(width * 0.018);
+    textAlign(CENTER, BOTTOM);
+    text("Travel to:", width / 2, locStartY - locGapY);
+
+    for (let i = 0; i < mafiaLocations.length; i++) {
+        const loc = mafiaLocations[i];
+        const col = i % 3;
+        const row = floor(i / 3); // Two rows for 6 locations
+        const btnX = locStartX + col * (locBtnWidth + locGapX);
+        const btnY = locStartY + row * (locBtnHeight + locGapY);
+
+        let locColor = color(80, 80, 150); // Default blueish
+        if (loc === currentMafiaLocation) {
+            locColor = color(50, 180, 50); // Green for current location
+        }
+
+        drawButton({ x: btnX, y: btnY, width: locBtnWidth, height: locBtnHeight, text: loc, color: locColor });
+    }
+}
+
 
 // --- Stock Market Functions ---
 
@@ -1047,539 +1282,6 @@ function changeRegion(newIndex) {
 }
 
 
-// --- Gambling Hall Functions ---
-function setupGamblingButtons() {
-    // These buttons are setup once, their positions are relative to canvas size.
-    // btnBackToGamblingMenu is also setup here for consistent styling.
-    btnBackToGamblingMenu = {
-        x: width / 2 - (width * 0.2) / 2, // Centered
-        y: height * 0.9,
-        width: width * 0.2,
-        height: height * 0.07,
-        text: 'Back',
-        color: color(100, 100, 100) // Neutral gray
-    };
-}
-
-function drawGamblingMenu() {
-    background(40, 50, 70); // Darker blue-gray for gambling menu
-
-    fill(240, 245, 250);
-    textSize(width * 0.035);
-    textAlign(CENTER, TOP);
-    text("Gambling Hall", width / 2, height * 0.15);
-    textSize(width * 0.02);
-    text("Choose your game of chance:", width / 2, height * 0.20);
-
-
-    const buttonWidth = width * 0.45;
-    const buttonHeight = height * 0.08;
-    const gap = height * 0.02;
-
-    let currentY = height * 0.25;
-
-    const btnRoulette = { x: width / 2 - buttonWidth / 2, y: currentY, width: buttonWidth, height: buttonHeight, text: '🎡 Roulette', color: color(150, 50, 50) };
-    currentY += buttonHeight + gap;
-    const btnDice = { x: width / 2 - buttonWidth / 2, y: currentY, width: buttonWidth, height: buttonHeight, text: '🎲 Roll Dice', color: color(50, 150, 50) };
-    currentY += buttonHeight + gap;
-    const btnHighLow = { x: width / 2 - buttonWidth / 2, y: currentY, width: buttonWidth, height: buttonHeight, text: '🃏 High-Low', color: color(50, 50, 150) };
-
-    drawButton(btnRoulette);
-    drawButton(btnDice);
-    drawButton(btnHighLow);
-    drawButton(btnBackToMain);
-}
-
-function drawRouletteGame() {
-    background(30, 40, 55); // Dark background for roulette
-    fill(240, 245, 250);
-    textSize(width * 0.035);
-    textAlign(CENTER, TOP);
-    text("Roulette", width / 2, height * 0.15);
-
-    // Roulette Wheel visualization (simple)
-    let wheelX = width / 2;
-    let wheelY = height * 0.4;
-    let wheelSize = width * 0.2;
-
-    noFill();
-    stroke(200);
-    strokeWeight(5);
-    ellipse(wheelX, wheelY, wheelSize, wheelSize); // Outer wheel
-
-    // Spin animation for wheel value (only animate if mid-spin)
-    let displayValue = rouletteWheelValue;
-    if (millis() - rouletteLastSpinTime < ROULETTE_SPIN_DURATION) {
-        displayValue = floor(random(0, 37)); // Show random numbers during spin
-    } else {
-        // If not spinning, display the last determined value or empty
-        if (rouletteWheelValue === -1) {
-            displayValue = ''; // Or a placeholder like '?'
-        }
-    }
-
-
-    // Display game instructions/result text
-    fill(gamblingOutcomeColor);
-    textSize(wheelSize * 0.18); // Smaller text for info
-    textAlign(CENTER, TOP);
-    text(gamblingResultText, wheelX, wheelY + wheelSize * 0.6); // Below wheel
-
-    // Display the actual spun number (or current animating number)
-    textSize(wheelSize * 0.3);
-    fill(255); // Default number color
-    if (displayValue === 0) fill(0, 150, 0); // Green for 0
-    else if (displayValue !== '' && displayValue % 2 === 0) fill(255, 0, 0); // Red for even (simplified color logic)
-    else if (displayValue !== '' && displayValue % 2 !== 0) fill(0); // Black for odd (simplified color logic)
-
-    // Draw the inner circle for the number
-    ellipse(wheelX, wheelY, wheelSize * 0.5, wheelSize * 0.5);
-    fill(255); // Text color for the number inside the wheel
-    text(displayValue, wheelX, wheelY);
-
-
-    // Bet Amount Input
-    drawBetInput(); // This function now directly draws the input box and current bet amount.
-
-    // Bet Type Buttons
-    const betButtonWidth = width * 0.1;
-    const betButtonHeight = height * 0.06;
-    const betGap = width * 0.01;
-    const betBtnY = height * 0.65;
-
-    const btnRed = { x: width * 0.3, y: betBtnY, width: betButtonWidth, height: betButtonHeight, text: 'Red', color: color(200, 50, 50) };
-    const btnBlack = { x: width * 0.45, y: betBtnY, width: betButtonWidth, height: betButtonHeight, text: 'Black', color: color(50, 50, 50) };
-    const btnGreen = { x: width * 0.6, y: betBtnY, width: betButtonWidth, height: betButtonHeight, text: 'Green (0)', color: color(50, 150, 50) };
-
-    drawButton(btnRed);
-    drawButton(btnBlack);
-    drawButton(btnGreen);
-
-    // Spin Button
-    const btnSpin = { x: width / 2 - (width * 0.15) / 2, y: height * 0.75, width: width * 0.15, height: height * 0.08, text: 'Spin!', color: color(100, 100, 200) };
-    drawButton(btnSpin);
-
-    drawButton(btnBackToGamblingMenu);
-}
-
-function drawDiceGame() {
-    background(30, 55, 40); // Dark background for dice
-    fill(240, 245, 250);
-    textSize(width * 0.035);
-    textAlign(CENTER, TOP);
-    text("Roll the Dice", width / 2, height * 0.15);
-
-    // Dice visualization
-    let diceSize = width * 0.08;
-    let diceGap = width * 0.02;
-    let diceX1 = width / 2 - diceSize - diceGap / 2;
-    let diceX2 = width / 2 + diceGap / 2;
-    let diceY = height * 0.4;
-
-    // Animate dice if mid-roll
-    let displayDice1 = diceRollValue1;
-    let displayDice2 = diceRollValue2;
-    if (millis() - diceLastRollTime < DICE_ROLL_DURATION) {
-        displayDice1 = floor(random(1, 7));
-        displayDice2 = floor(random(1, 7));
-    }
-
-    drawDice(diceX1, diceY, diceSize, displayDice1);
-    drawDice(diceX2, diceY, diceSize, displayDice2);
-
-    // Display result
-    fill(gamblingOutcomeColor);
-    textSize(width * 0.025);
-    textAlign(CENTER, TOP);
-    text(gamblingResultText, width / 2, height * 0.55);
-
-    // Bet Amount Input
-    drawBetInput();
-
-    // Bet Type Buttons
-    const betButtonWidth = width * 0.15;
-    const betButtonHeight = height * 0.06;
-    const betGap = width * 0.01;
-    const betBtnY = height * 0.65;
-
-    const btnUnder7 = { x: width * 0.3, y: betBtnY, width: betButtonWidth, height: betButtonHeight, text: 'Under 7 (2x)', color: color(50, 150, 200) };
-    const btnExact7 = { x: width * 0.475, y: betBtnY, width: betButtonWidth, height: betButtonHeight, text: 'Exact 7 (5x)', color: color(200, 150, 50) };
-    const btnOver7 = { x: width * 0.65, y: betBtnY, width: betButtonWidth, height: betButtonHeight, text: 'Over 7 (2x)', color: color(50, 200, 150) };
-
-    drawButton(btnUnder7);
-    drawButton(btnExact7);
-    drawButton(btnOver7);
-
-    // Roll Button
-    const btnRoll = { x: width / 2 - (width * 0.15) / 2, y: height * 0.75, width: width * 0.15, height: height * 0.08, text: 'Roll!', color: color(150, 50, 200) };
-    drawButton(btnRoll);
-
-    drawButton(btnBackToGamblingMenu);
-}
-
-function drawDice(x, y, size, value) {
-    fill(240, 240, 240); // White dice
-    stroke(50);
-    strokeWeight(2);
-    rect(x, y, size, size, size * 0.1); // Rounded square
-
-    fill(50); // Black dots
-    const dotSize = size * 0.1;
-    const offset = size * 0.25;
-
-    const drawDot = (dx, dy) => {
-        ellipse(x + dx, y + dy, dotSize, dotSize);
-    };
-
-    if (value === 1) {
-        drawDot(size / 2, size / 2);
-    } else if (value === 2) {
-        drawDot(offset, size - offset);
-        drawDot(size - offset, offset);
-    } else if (value === 3) {
-        drawDot(offset, size - offset);
-        drawDot(size / 2, size / 2);
-        drawDot(size - offset, offset);
-    } else if (value === 4) {
-        drawDot(offset, offset);
-        drawDot(size - offset, offset);
-        drawDot(offset, size - offset);
-        drawDot(size - offset, size - offset);
-    } else if (value === 5) {
-        drawDot(offset, offset);
-        drawDot(size - offset, offset);
-        drawDot(size / 2, size / 2);
-        drawDot(offset, size - offset);
-        drawDot(size - offset, size - offset);
-    } else if (value === 6) {
-        drawDot(offset, offset);
-        drawDot(size - offset, offset);
-        drawDot(offset, size / 2);
-        drawDot(size - offset, size / 2);
-        drawDot(offset, size - offset);
-        drawDot(size - offset, size - offset);
-    }
-}
-
-function drawHighLowGame() {
-    background(55, 40, 30); // Dark background for High-Low
-    fill(240, 245, 250);
-    textSize(width * 0.035);
-    textAlign(CENTER, TOP);
-    text("High or Low?", width / 2, height * 0.15);
-
-    // Card dimensions
-    const cardWidth = width * 0.1;
-    const cardHeight = cardWidth * 1.4; // Standard card aspect ratio
-    const cardGap = width * 0.05;
-    const cardY = height * 0.35;
-
-    // First Card
-    let card1X = width / 2 - cardWidth - cardGap / 2;
-    drawCard(card1X, cardY, cardWidth, cardHeight, highLowCard1);
-
-    // Second Card (face down or revealed)
-    let card2X = width / 2 + cardGap / 2;
-    if (highLowRevealed || (millis() - highLowLastGameTime < HIGHLOW_REVEAL_DURATION && highLowCard2 !== null)) {
-        // Show card2 if revealed OR if it's in the process of revealing (for animation)
-        drawCard(card2X, cardY, cardWidth, cardHeight, highLowCard2);
-    } else {
-        drawCardBack(card2X, cardY, cardWidth, cardHeight);
-    }
-
-    // Display result
-    fill(gamblingOutcomeColor);
-    textSize(width * 0.025);
-    textAlign(CENTER, TOP);
-    text(gamblingResultText, width / 2, height * 0.55);
-
-    // Bet Amount Input
-    drawBetInput();
-
-    // High / Low Buttons
-    const btnHigh = { x: width * 0.35, y: height * 0.7, width: width * 0.1, height: height * 0.06, text: 'High', color: color(50, 180, 50) };
-    const btnLow = { x: width * 0.55, y: height * 0.7, width: width * 0.1, height: height * 0.06, text: 'Low', color: color(220, 50, 50) };
-
-    if (!highLowRevealed && highLowCard1) { // Only show these if a choice is needed and first card is drawn
-        drawButton(btnHigh);
-        drawButton(btnLow);
-    }
-
-
-    // Deal New Card / Back Button
-    let dealButtonText = 'New Game';
-    let dealButtonColor = color(100, 100, 200); // Default blue
-    if (highLowCard1 && !highLowRevealed) {
-        dealButtonText = 'Choose!';
-        dealButtonColor = color(200, 100, 50); // Orange to emphasize choice
-    }
-
-    const btnDeal = { x: width / 2 - (width * 0.15) / 2, y: height * 0.8, width: width * 0.15, height: height * 0.08, text: dealButtonText, color: dealButtonColor };
-    drawButton(btnDeal); // Always show this button, text changes based on state
-
-    drawButton(btnBackToGamblingMenu);
-}
-
-function drawCard(x, y, w, h, card) {
-    fill(255);
-    stroke(50);
-    strokeWeight(2);
-    rect(x, y, w, h, 10); // Card border
-
-    if (card) {
-        let rank = card.rank;
-        let suit = card.suit;
-        let suitColor = (suit === '♥' || suit === '♦') ? color(200, 0, 0) : color(0); // Red or Black
-
-        fill(suitColor);
-        textSize(w * 0.25);
-        textAlign(LEFT, TOP);
-        text(rank, x + 5, y + 5); // Top-left rank
-        textAlign(RIGHT, BOTTOM);
-        text(rank, x + w - 5, y + h - 5); // Bottom-right rank
-
-        textSize(w * 0.4);
-        textAlign(CENTER, CENTER);
-        text(suit, x + w / 2, y + h / 2); // Center suit
-    }
-}
-
-function drawCardBack(x, y, w, h) {
-    fill(80, 100, 150); // Blueish back
-    stroke(50);
-    strokeWeight(2);
-    rect(x, y, w, h, 10);
-
-    // Simple pattern for card back
-    noFill();
-    stroke(50, 70, 120);
-    strokeWeight(2);
-    for (let i = 0; i < 10; i++) {
-        line(x + i * (w / 10), y, x + i * (w / 10), y + h);
-        line(x, y + i * (h / 10), x + w, y + i * (h / 10));
-    }
-}
-
-
-function drawBetInput() {
-    const inputX = width / 2 - (width * 0.2) / 2;
-    const inputY = height * 0.6; // Adjusted Y position to be consistent with other screens
-    const inputWidth = width * 0.2;
-    const inputHeight = height * 0.06;
-
-    fill(30, 40, 50); // Input field background
-    stroke(100, 115, 130);
-    strokeWeight(1);
-    rect(inputX, inputY, inputWidth, inputHeight, 8);
-
-    fill(240, 245, 250);
-    textSize(width * 0.02);
-    textAlign(CENTER, CENTER);
-    text(gamblingBetAmount || 'Enter Bet', inputX + inputWidth / 2, inputY + inputHeight / 2);
-}
-
-function handleBet(amount, payoutMultiplier, isWin) {
-    if (amount <= 0 || isNaN(amount)) {
-        addGameMessage("Invalid bet amount.", 'error');
-        return false;
-    }
-    if (gameMoney < amount) {
-        addGameMessage("Not enough money for that bet!", 'error');
-        return false;
-    }
-
-    gameMoney -= amount; // Deduct bet first
-
-    if (isWin) {
-        const winnings = amount * payoutMultiplier;
-        gameMoney += winnings;
-        addGameMessage(`You won $${winnings.toFixed(2)}! Total: $${gameMoney.toLocaleString()}`, 'success');
-        gamblingOutcomeColor = color(50, 200, 50); // Green for win
-        return true;
-    } else {
-        addGameMessage(`You lost $${amount.toFixed(2)}. Total: $${gameMoney.toLocaleString()}`, 'error');
-        gamblingOutcomeColor = color(200, 50, 50); // Red for loss
-        return false;
-    }
-}
-
-function spinRoulette(betAmount, type) {
-    if (millis() - rouletteLastSpinTime < ROULETTE_SPIN_DURATION) {
-        addGameMessage("Wheel is still spinning!", 'warning');
-        return;
-    }
-    if (betAmount <= 0 || isNaN(betAmount)) {
-        addGameMessage("Please enter a valid bet amount.", 'error');
-        return;
-    }
-    if (gameMoney < betAmount) {
-        addGameMessage("Not enough money for that bet!", 'error');
-        return;
-    }
-
-    rouletteBetType = type; // Store the bet type for drawing
-    rouletteWheelValue = -1; // Reset value for animation
-    gamblingResultText = "Spinning...";
-    rouletteLastSpinTime = millis();
-
-    // Deduct bet immediately
-    gameMoney -= betAmount;
-
-    setTimeout(() => {
-        const result = floor(random(0, 37)); // 0-36
-        rouletteWheelValue = result;
-
-        let isWin = false;
-        let payout = 0;
-
-        // Simplified roulette rules for demonstration:
-        // 0 is green (35x)
-        // Even numbers (excluding 0) are red (2x)
-        // Odd numbers are black (2x)
-        if (type === 'green') {
-            if (result === 0) { isWin = true; payout = 35; }
-        } else if (type === 'red') {
-            if (result !== 0 && result % 2 === 0) { isWin = true; payout = 2; }
-        } else if (type === 'black') {
-            if (result !== 0 && result % 2 !== 0) { isWin = true; payout = 2; }
-        }
-        
-        // Handle the bet outcome
-        if (isWin) {
-            const winnings = betAmount * payout;
-            gameMoney += winnings;
-            gamblingResultText = `Result: ${rouletteWheelValue} - YOU WON $${winnings.toFixed(2)}!`;
-            gamblingOutcomeColor = color(50, 200, 50); // Green for win
-        } else {
-            gamblingResultText = `Result: ${rouletteWheelValue} - YOU LOST $${betAmount.toFixed(2)}.`;
-            gamblingOutcomeColor = color(200, 50, 50); // Red for loss
-        }
-        updateMoney(0); // Update money display
-    }, ROULETTE_SPIN_DURATION);
-}
-
-
-function rollDice(betAmount, type) {
-    if (millis() - diceLastRollTime < DICE_ROLL_DURATION) {
-        addGameMessage("Dice are still rolling!", 'warning');
-        return;
-    }
-    if (betAmount <= 0 || isNaN(betAmount)) {
-        addGameMessage("Please enter a valid bet amount.", 'error');
-        return;
-    }
-    if (gameMoney < betAmount) {
-        addGameMessage("Not enough money for that bet!", 'error');
-        return;
-    }
-
-    diceBetType = type; // Store bet type for drawing
-    gamblingResultText = "Rolling...";
-    diceLastRollTime = millis();
-
-    // Deduct bet immediately
-    gameMoney -= betAmount;
-
-    setTimeout(() => {
-        const roll1 = floor(random(1, 7)); // 1-6
-        const roll2 = floor(random(1, 7)); // 1-6
-        diceRollValue1 = roll1;
-        diceRollValue2 = roll2;
-        const totalRoll = roll1 + roll2;
-
-        let isWin = false;
-        let payout = 0;
-
-        if (type === 'under7') {
-            if (totalRoll < 7) { isWin = true; payout = 2; }
-        } else if (type === 'exact7') {
-            if (totalRoll === 7) { isWin = true; payout = 5; } // 5x payout for exact 7
-        } else if (type === 'over7') {
-            if (totalRoll > 7) { isWin = true; payout = 2; }
-        }
-
-        if (isWin) {
-            const winnings = betAmount * payout;
-            gameMoney += winnings;
-            gamblingResultText = `Rolled: ${roll1} + ${roll2} = ${totalRoll} - YOU WON $${winnings.toFixed(2)}!`;
-            gamblingOutcomeColor = color(50, 200, 50); // Green for win
-        } else {
-            gamblingResultText = `Rolled: ${roll1} + ${roll2} = ${totalRoll} - YOU LOST $${betAmount.toFixed(2)}.`;
-            gamblingOutcomeColor = color(200, 50, 50); // Red for loss
-        }
-        updateMoney(0); // Update money display
-    }, DICE_ROLL_DURATION);
-}
-
-function startHighLow() {
-    highLowRevealed = false;
-    highLowCard1 = drawRandomCard();
-    highLowCard2 = null; // Hide second card
-    highLowChoice = 'none';
-    gamblingResultText = "Bet and choose High or Low!";
-    highLowLastGameTime = millis(); // Reset time for potential reveal animation
-}
-
-function drawRandomCard() {
-    const rank = random(CARD_RANKS);
-    const suit = random(CARD_SUITS);
-    return { rank: rank, suit: suit, value: CARD_VALUES[rank] };
-}
-
-function placeHighLowBet(betAmount, choice) {
-    if (highLowRevealed) {
-        addGameMessage("Game already played. Deal a new game.", 'warning');
-        return;
-    }
-    if (!highLowCard1) {
-        addGameMessage("Please deal a new game first.", 'warning');
-        return;
-    }
-    if (betAmount <= 0 || isNaN(betAmount)) {
-        addGameMessage("Please enter a valid bet amount.", 'error');
-        return;
-    }
-    if (gameMoney < betAmount) {
-        addGameMessage("Not enough money for that bet!", 'error');
-        return;
-    }
-
-    highLowChoice = choice; // Store player's choice
-    gamblingResultText = "Revealing...";
-    
-    // Deduct bet immediately
-    gameMoney -= betAmount;
-    setTimeout(() => {
-        highLowCard2 = drawRandomCard();
-        highLowRevealed = true;
-
-        let isWin = false;
-        let payout = 2; // High-Low is typically 2x (even money)
-
-        if (highLowCard2.value > highLowCard1.value && choice === 'high') {
-            isWin = true;
-        } else if (highLowCard2.value < highLowCard1.value && choice === 'low') {
-            isWin = true;
-        } else if (highLowCard2.value === highLowCard1.value) {
-            // Tie condition: often a push (bet returned) or a loss for the player.
-            // For simplicity, let's make it a loss for the player to add risk.
-            isWin = false;
-        }
-
-        if (isWin) {
-            const winnings = betAmount * payout;
-            gameMoney += winnings;
-            gamblingResultText = `Your choice: ${choice.toUpperCase()}! Card 2: ${highLowCard2.rank}${highLowCard2.suit}. YOU WON $${winnings.toFixed(2)}!`;
-            gamblingOutcomeColor = color(50, 200, 50); // Green for win
-        } else {
-            gamblingResultText = `Your choice: ${choice.toUpperCase()}! Card 2: ${highLowCard2.rank}${highLowCard2.suit}. YOU LOST $${betAmount.toFixed(2)}.`;
-            gamblingOutcomeColor = color(200, 50, 50); // Red for loss
-        }
-        updateMoney(0); // Update money display
-    }, HIGHLOW_REVEAL_DURATION);
-}
-
-
 // Function to draw game parameters (Money, Day, Location) on the canvas (positioned left)
 function drawGameInfo() {
     const boxWidth = width * 0.22; // Responsive width
@@ -1641,7 +1343,7 @@ function drawGameInfo() {
 
     // Location
     textSize(textBaseSize);
-    text('�', boxX + padding, currentTextY); // Icon
+    text('📍', boxX + padding, currentTextY); // Icon
     text(`Location: ${gameLocation}`, boxX + padding + iconSize + 5, currentTextY);
 
     // Reset shadow
@@ -1735,19 +1437,9 @@ function setGameState(newState) {
         addGameMessage("Choosing new market region.", 'info');
     } else if (newState === 'buySellStock') {
         addGameMessage(`Trading ${selectedStockSymbol}.`, 'info');
-    } else if (newState === 'gamblingMenu') {
-        gameLocation = "Gambling Hall";
-        addGameMessage("Welcome to the Gambling Hall!", 'info');
-    } else if (newState === 'gamblingRoulette') {
-        gameLocation = "Roulette Table";
-        addGameMessage("Playing Roulette. Place your bets!", 'info');
-    } else if (newState === 'gamblingDice') {
-        gameLocation = "Dice Table";
-        addGameMessage("Playing Dice. Roll 'em!", 'info');
-    } else if (newState === 'gamblingHighLow') {
-        gameLocation = "High-Low Card Game";
-        addGameMessage("Playing High-Low. Choose wisely!", 'info');
-        startHighLow(); // Always start a fresh game when entering High-Low
+    } else if (newState === 'mafiaWars') {
+        gameLocation = currentMafiaLocation; // Set location to current Mafia location
+        addGameMessage("You've entered the Mafia underworld!", 'info');
     }
     else {
         // Generic messages for other states if needed
@@ -1764,20 +1456,7 @@ function resetGame() {
     gameMessages = []; // Clear all messages immediately on reset
     initializeStocks(); // Re-initialize stock prices and clear portfolio
     playerPortfolio = {};
-
-    // Reset gambling variables
-    gamblingBetAmount = "";
-    gamblingResultText = "";
-    rouletteWheelValue = -1;
-    rouletteBetType = 'none';
-    diceRollValue1 = 1;
-    diceRollValue2 = 1;
-    diceBetType = 'none';
-    highLowCard1 = null;
-    highLowCard2 = null;
-    highLowRevealed = false;
-    highLowChoice = 'none';
-
+    initializeMafiaWars(); // Reset Mafia Wars state
 
     addGameMessage("Game reset. Welcome back!");
     setGameState('mainMenu'); // Go back to main menu
@@ -1786,7 +1465,11 @@ function resetGame() {
 // Example functions for game progress
 function advanceDay() {
     gameDay++;
-    advanceStockPrices(); // Update stock prices when day advances
+    if (currentGameState === 'stockMarket') {
+        advanceStockPrices(); // Update stock prices when day advances if in stock market
+    } else if (currentGameState === 'mafiaWars') {
+        mafiaContrabandPrices = generateMafiaPrices(currentMafiaLocation); // Update contraband prices daily
+    }
     addGameMessage(`Advanced to Day ${gameDay}.`);
 }
 
