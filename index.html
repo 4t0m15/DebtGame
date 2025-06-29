@@ -1,19 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Debt Game</title>
-    <!-- css -->
-    <link rel="stylesheet" href="style.css">
-    <!-- p5.js library. I think we might localize this, idk best to keep it as a link for now. -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
-    <script src="sketch.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Hide scrollbars */
+            background-color: #323A4D; /* Match the game's overall background */
+        }
+        #game-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+        }
+        canvas {
+            display: block; /* Remove extra space below canvas */
+        }
+    </style>
 </head>
 <body>
-    <div id="game-container">
-        <!-- p5.js canvas will be injected here by sketch.js and will handle all main UI -->
-        <!-- The game title, main menu, game screens, info, and messages are now all drawn directly on this canvas -->
-    </div>
+    <div id="game-container"></div>
+    <script src="sketch.js"></script>
 </body>
 </html>

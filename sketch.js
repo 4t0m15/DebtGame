@@ -1092,7 +1092,7 @@ function drawRouletteGame() {
 
     // Spin animation for wheel value
     let displayValue = rouletteWheelValue;
-    if (millis() - rouletteLastSpinTime < ROULETTE_SPIN_DURATION && rouletteWheelValue !== -1) {
+    if (millis() - rouletteLastSpinTime < ROULETTE_SPIN_DURATION) {
         // Simple animation: show random numbers during spin
         displayValue = floor(random(0, 37));
     }
@@ -1387,15 +1387,19 @@ function spinRoulette(betAmount, type) {
         let isWin = false;
         let payout = 0;
 
+        // Simplified roulette rules for demonstration:
+        // 0 is green (35x)
+        // Even numbers (excluding 0) are red (2x)
+        // Odd numbers are black (2x)
         if (type === 'green') {
-            if (result === 0) { isWin = true; payout = 35; } // 35x payout for 0
+            if (result === 0) { isWin = true; payout = 35; }
         } else if (type === 'red') {
-            if (result !== 0 && result % 2 === 0) { isWin = true; payout = 2; } // Simplified: Even numbers are red (except 0)
+            if (result !== 0 && result % 2 === 0) { isWin = true; payout = 2; }
         } else if (type === 'black') {
-            if (result !== 0 && result % 2 !== 0) { isWin = true; payout = 2; } // Simplified: Odd numbers are black
+            if (result !== 0 && result % 2 !== 0) { isWin = true; payout = 2; }
         }
-        // Additional bet types like even/odd could be added here if number mapping is more complex
         
+        // Handle the bet outcome
         handleBet(betAmount, payout, isWin);
         gamblingResultText = `Result: ${rouletteWheelValue}`;
         if(isWin) gamblingResultText += " - WIN!"; else gamblingResultText += " - LOSE.";
