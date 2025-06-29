@@ -84,7 +84,7 @@ function setupMainMenuButtons() {
     const startY = (height / 2) - (1.5 * buttonHeight + 1.5 * gap); // Center the group of 3 buttons
 
     btnDrugWars = {
-        x: (width - buttonWidth) / 2,
+        x: (width - buttonWidth) / 2, //20%
         y: startY,
         width: buttonWidth,
         height: buttonHeight,
@@ -93,8 +93,8 @@ function setupMainMenuButtons() {
     };
 
     btnStockMarket = {
-        x: (width - buttonWidth) / 2,
-        y: startY + buttonHeight + gap,
+        x: (width - buttonWidth) / 2, // 20 %
+        y: startY + buttonHeight + gap, // 3 stacked on each other
         width: buttonWidth,
         height: buttonHeight,
         text: '📈 Stock Market',
@@ -244,6 +244,47 @@ function drawBackButton() {
     // This `if (mouseIsPressed)` block here is just for direct visual feedback for this button.
     // The actual state change happens in mousePressed() if the button is clicked there.
 }
+
+// --- Game Screen Drawing Functions (Placeholders) ---
+function drawDrugWarsScreen() {
+    background(100, 30, 30); // Dark red background for Drug Wars
+    textAlign(CENTER, CENTER);
+    textSize(32);
+    fill(255, 200, 200); // Light red
+    text("Drug Wars: In Progress...", width / 2, height / 2 - 40);
+    textSize(18);
+    fill(255);
+    text("This is where the Drug Wars game logic and UI will be drawn.", width / 2, height / 2 + 10);
+    // Add a "Back to Main Menu" button for testing
+    drawBackButton();
+}
+
+function drawStockMarketScreen() {
+    background(30, 100, 30); // Dark green background for Stock Market
+    textAlign(CENTER, CENTER);
+    textSize(32);
+    fill(200, 255, 200); // Light green
+    text("Stock Market: Coming Soon!", width / 2, height / 2 - 40);
+    textSize(18);
+    fill(255);
+    text("Get ready to invest.", width / 2, height / 2 + 10);
+    drawBackButton();
+}
+
+function drawGamblingScreen() {
+    background(80, 30, 100); // Dark purple background for Gambling
+    textAlign(CENTER, CENTER);
+    textSize(32);
+    fill(200, 200, 255); // Light purple
+    text("Gambling Hall: Coming Soon!", width / 2, height / 2 - 40);
+    textSize(18);
+    fill(255);
+    text("Try your luck!", width / 2, height / 2 + 10);
+    drawBackButton();
+}
+
+
+
 
 
 
