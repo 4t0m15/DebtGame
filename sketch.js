@@ -270,39 +270,43 @@ function mousePressed() {
         }
     } else if (currentGameState === 'gamblingRoulette') {
         const betAmt = int(gamblingBetAmount);
-        const betRed = { x: width * 0.3, y: height * 0.65, width: width * 0.1, height: height * 0.06 };
-        const betBlack = { x: width * 0.45, y: height * 0.65, width: width * 0.1, height: height * 0.06 };
-        const betGreen = { x: width * 0.6, y: height * 0.65, width: width * 0.1, height: height * 0.06 };
-        const betSpin = { x: width / 2 - (width * 0.15) / 2, y: height * 0.75, width: width * 0.15, height: height * 0.08 };
+        const btnRed = { x: width * 0.3, y: height * 0.65, width: width * 0.1, height: height * 0.06 };
+        const btnBlack = { x: width * 0.45, y: height * 0.65, width: width * 0.1, height: height * 0.06 };
+        const btnGreen = { x: width * 0.6, y: height * 0.65, width: width * 0.1, height: height * 0.06 };
+        const btnSpin = { x: width / 2 - (width * 0.15) / 2, y: height * 0.75, width: width * 0.15, height: height * 0.08 };
 
-        if (isMouseOver(betRed) && betAmt > 0) spinRoulette(betAmt, 'red');
-        else if (isMouseOver(betBlack) && betAmt > 0) spinRoulette(betAmt, 'black');
-        else if (isMouseOver(betGreen) && betAmt > 0) spinRoulette(betAmt, 'green');
-        else if (isMouseOver(betSpin) && rouletteBetType !== 'none' && betAmt > 0) { // Only spin if a bet type is selected
+        if (isMouseOver(btnRed) && betAmt > 0) spinRoulette(betAmt, 'red');
+        else if (isMouseOver(btnBlack) && betAmt > 0) spinRoulette(betAmt, 'black');
+        else if (isMouseOver(btnGreen) && betAmt > 0) spinRoulette(betAmt, 'green');
+        else if (isMouseOver(btnSpin) && rouletteBetType !== 'none' && betAmt > 0) { // Only spin if a bet type is selected
             spinRoulette(betAmt, rouletteBetType); // Use the currently selected bet type
         }
         else if (isMouseOver(btnBackToGamblingMenu)) {
             setGameState('gamblingMenu');
-        } else if (betAmt <= 0 && isMouseOver(betSpin)) {
+        } else if (betAmt <= 0 && isMouseOver(btnSpin)) {
              addGameMessage("Please enter a bet amount.", 'warning');
+        } else if (betAmt > 0 && rouletteBetType === 'none' && isMouseOver(btnSpin)) {
+            addGameMessage("Please select a bet type (Red, Black, or Green).", 'warning');
         }
     } else if (currentGameState === 'gamblingDice') {
         const betAmt = int(gamblingBetAmount);
-        const betUnder7 = { x: width * 0.3, y: height * 0.65, width: width * 0.15, height: height * 0.06 };
-        const betExact7 = { x: width * 0.475, y: height * 0.65, width: width * 0.15, height: height * 0.06 };
-        const betOver7 = { x: width * 0.65, y: height * 0.65, width: width * 0.15, height: height * 0.06 };
-        const betRoll = { x: width / 2 - (width * 0.15) / 2, y: height * 0.75, width: width * 0.15, height: height * 0.08 };
+        const btnUnder7 = { x: width * 0.3, y: height * 0.65, width: width * 0.15, height: height * 0.06 };
+        const btnExact7 = { x: width * 0.475, y: height * 0.65, width: width * 0.15, height: height * 0.06 };
+        const btnOver7 = { x: width * 0.65, y: height * 0.65, width: width * 0.15, height: height * 0.06 };
+        const btnRoll = { x: width / 2 - (width * 0.15) / 2, y: height * 0.75, width: width * 0.15, height: height * 0.08 };
 
-        if (isMouseOver(betUnder7) && betAmt > 0) rollDice(betAmt, 'under7');
-        else if (isMouseOver(betExact7) && betAmt > 0) rollDice(betAmt, 'exact7');
-        else if (isMouseOver(betOver7) && betAmt > 0) rollDice(betAmt, 'over7');
-        else if (isMouseOver(betRoll) && diceBetType !== 'none' && betAmt > 0) {
+        if (isMouseOver(btnUnder7) && betAmt > 0) rollDice(betAmt, 'under7');
+        else if (isMouseOver(btnExact7) && betAmt > 0) rollDice(betAmt, 'exact7');
+        else if (isMouseOver(btnOver7) && betAmt > 0) rollDice(betAmt, 'over7');
+        else if (isMouseOver(btnRoll) && diceBetType !== 'none' && betAmt > 0) {
             rollDice(betAmt, diceBetType);
         }
         else if (isMouseOver(btnBackToGamblingMenu)) {
             setGameState('gamblingMenu');
-        } else if (betAmt <= 0 && isMouseOver(betRoll)) {
+        } else if (betAmt <= 0 && isMouseOver(btnRoll)) {
              addGameMessage("Please enter a bet amount.", 'warning');
+        } else if (betAmt > 0 && diceBetType === 'none' && isMouseOver(btnRoll)) {
+            addGameMessage("Please select a bet type (Under 7, Exact 7, or Over 7).", 'warning');
         }
     } else if (currentGameState === 'gamblingHighLow') {
         const betAmt = int(gamblingBetAmount);
@@ -310,20 +314,24 @@ function mousePressed() {
         const btnLow = { x: width * 0.55, y: height * 0.7, width: width * 0.1, height: height * 0.06 };
         const btnDeal = { x: width / 2 - (width * 0.15) / 2, y: height * 0.8, width: width * 0.15, height: height * 0.08 };
 
-        if (!highLowRevealed) { // Only allow High/Low choice if cards not revealed
-            if (isMouseOver(btnHigh) && highLowCard1 && betAmt > 0) placeHighLowBet(betAmt, 'high');
-            else if (isMouseOver(btnLow) && highLowCard1 && betAmt > 0) placeHighLowBet(betAmt, 'low');
+        if (!highLowRevealed && highLowCard1) { // Only allow High/Low choice if cards not revealed AND first card is drawn
+            if (isMouseOver(btnHigh) && betAmt > 0) placeHighLowBet(betAmt, 'high');
+            else if (isMouseOver(btnLow) && betAmt > 0) placeHighLowBet(betAmt, 'low');
+            else if (betAmt <= 0 && (isMouseOver(btnHigh) || isMouseOver(btnLow))) {
+                 addGameMessage("Please enter a bet amount.", 'warning');
+            }
         }
-
-        if (isMouseOver(btnDeal) && (highLowRevealed || !highLowCard1) ) { // Allow new game if revealed or initial state
-            startHighLow();
-            gamblingBetAmount = ""; // Reset bet amount
-            gamblingResultText = ""; // Clear result text
-        }
-        else if (isMouseOver(btnBackToGamblingMenu)) {
+        
+        if (isMouseOver(btnDeal)) {
+            if (highLowRevealed || !highLowCard1) { // Allow new game if revealed or initial state
+                startHighLow();
+                gamblingBetAmount = ""; // Reset bet amount
+                gamblingResultText = ""; // Clear result text
+            } else { // It's the "Choose!" button
+                addGameMessage("Please choose High or Low for your bet.", 'warning');
+            }
+        } else if (isMouseOver(btnBackToGamblingMenu)) {
             setGameState('gamblingMenu');
-        } else if (betAmt <= 0 && !highLowRevealed && highLowCard1 && (isMouseOver(btnHigh) || isMouseOver(btnLow))) {
-            addGameMessage("Please enter a bet amount.", 'warning');
         }
     }
     // Generic back button for drugWars
@@ -341,11 +349,20 @@ function mousePressed() {
 }
 
 function keyPressed() {
-    if (currentGameState === 'buySellStock' || currentGameState === 'gamblingRoulette' || currentGameState === 'gamblingDice' || currentGameState === 'gamblingHighLow') {
+    // Only allow number input for gambling bet amount, not stock quantity anymore in this focused context
+    if (currentGameState === 'gamblingRoulette' || currentGameState === 'gamblingDice' || currentGameState === 'gamblingHighLow') {
         if (keyCode === BACKSPACE) {
             gamblingBetAmount = gamblingBetAmount.substring(0, gamblingBetAmount.length - 1);
         } else if (key >= '0' && key <= '9') {
             gamblingBetAmount += key;
+        }
+    }
+    // Keep stock quantity input if user is still on buy/sell screen
+    if (currentGameState === 'buySellStock') {
+         if (keyCode === BACKSPACE) {
+            buySellQuantity = buySellQuantity.substring(0, buySellQuantity.length - 1);
+        } else if (key >= '0' && key <= '9') {
+            buySellQuantity += key;
         }
     }
 }
@@ -1090,38 +1107,39 @@ function drawRouletteGame() {
     strokeWeight(5);
     ellipse(wheelX, wheelY, wheelSize, wheelSize); // Outer wheel
 
-    // Spin animation for wheel value
+    // Spin animation for wheel value (only animate if mid-spin)
     let displayValue = rouletteWheelValue;
     if (millis() - rouletteLastSpinTime < ROULETTE_SPIN_DURATION) {
-        // Simple animation: show random numbers during spin
-        displayValue = floor(random(0, 37));
-    }
-
-    // Display result
-    if (rouletteWheelValue !== -1) {
-        fill(gamblingOutcomeColor);
-        textSize(wheelSize * 0.2);
-        text(gamblingResultText, wheelX, wheelY + wheelSize * 0.6); // Below wheel
-        // Display the actual spun number
-        textSize(wheelSize * 0.3);
-        fill(255);
-        if (displayValue === 0) fill(0, 150, 0); // Green for 0
-        else if (displayValue % 2 === 0) fill(255, 0, 0); // Red for even (simplified color logic)
-        else fill(0); // Black for odd (simplified color logic)
-
-        // Draw the number on the wheel
-        ellipse(wheelX, wheelY, wheelSize * 0.5, wheelSize * 0.5); // Inner circle for number
-        fill(255);
-        text(displayValue, wheelX, wheelY);
+        displayValue = floor(random(0, 37)); // Show random numbers during spin
     } else {
-        fill(150);
-        textSize(wheelSize * 0.2);
-        text("Place your bet and spin!", wheelX, wheelY + wheelSize * 0.6);
+        // If not spinning, display the last determined value or empty
+        if (rouletteWheelValue === -1) {
+            displayValue = ''; // Or a placeholder like '?'
+        }
     }
+
+
+    // Display game instructions/result text
+    fill(gamblingOutcomeColor);
+    textSize(wheelSize * 0.18); // Smaller text for info
+    textAlign(CENTER, TOP);
+    text(gamblingResultText, wheelX, wheelY + wheelSize * 0.6); // Below wheel
+
+    // Display the actual spun number (or current animating number)
+    textSize(wheelSize * 0.3);
+    fill(255); // Default number color
+    if (displayValue === 0) fill(0, 150, 0); // Green for 0
+    else if (displayValue !== '' && displayValue % 2 === 0) fill(255, 0, 0); // Red for even (simplified color logic)
+    else if (displayValue !== '' && displayValue % 2 !== 0) fill(0); // Black for odd (simplified color logic)
+
+    // Draw the inner circle for the number
+    ellipse(wheelX, wheelY, wheelSize * 0.5, wheelSize * 0.5);
+    fill(255); // Text color for the number inside the wheel
+    text(displayValue, wheelX, wheelY);
 
 
     // Bet Amount Input
-    drawBetInput();
+    drawBetInput(); // This function now directly draws the input box and current bet amount.
 
     // Bet Type Buttons
     const betButtonWidth = width * 0.1;
@@ -1158,8 +1176,16 @@ function drawDiceGame() {
     let diceX2 = width / 2 + diceGap / 2;
     let diceY = height * 0.4;
 
-    drawDice(diceX1, diceY, diceSize, diceRollValue1);
-    drawDice(diceX2, diceY, diceSize, diceRollValue2);
+    // Animate dice if mid-roll
+    let displayDice1 = diceRollValue1;
+    let displayDice2 = diceRollValue2;
+    if (millis() - diceLastRollTime < DICE_ROLL_DURATION) {
+        displayDice1 = floor(random(1, 7));
+        displayDice2 = floor(random(1, 7));
+    }
+
+    drawDice(diceX1, diceY, diceSize, displayDice1);
+    drawDice(diceX2, diceY, diceSize, displayDice2);
 
     // Display result
     fill(gamblingOutcomeColor);
@@ -1254,7 +1280,8 @@ function drawHighLowGame() {
 
     // Second Card (face down or revealed)
     let card2X = width / 2 + cardGap / 2;
-    if (highLowRevealed) {
+    if (highLowRevealed || (millis() - highLowLastGameTime < HIGHLOW_REVEAL_DURATION && highLowCard2 !== null)) {
+        // Show card2 if revealed OR if it's in the process of revealing (for animation)
         drawCard(card2X, cardY, cardWidth, cardHeight, highLowCard2);
     } else {
         drawCardBack(card2X, cardY, cardWidth, cardHeight);
@@ -1273,14 +1300,21 @@ function drawHighLowGame() {
     const btnHigh = { x: width * 0.35, y: height * 0.7, width: width * 0.1, height: height * 0.06, text: 'High', color: color(50, 180, 50) };
     const btnLow = { x: width * 0.55, y: height * 0.7, width: width * 0.1, height: height * 0.06, text: 'Low', color: color(220, 50, 50) };
 
-    if (!highLowRevealed && highLowCard1) { // Only show these if a choice is needed
+    if (!highLowRevealed && highLowCard1) { // Only show these if a choice is needed and first card is drawn
         drawButton(btnHigh);
         drawButton(btnLow);
     }
 
 
     // Deal New Card / Back Button
-    const btnDeal = { x: width / 2 - (width * 0.15) / 2, y: height * 0.8, width: width * 0.15, height: height * 0.08, text: (highLowCard1 && !highLowRevealed) ? 'Choose!' : 'New Game', color: color(100, 100, 200) };
+    let dealButtonText = 'New Game';
+    let dealButtonColor = color(100, 100, 200); // Default blue
+    if (highLowCard1 && !highLowRevealed) {
+        dealButtonText = 'Choose!';
+        dealButtonColor = color(200, 100, 50); // Orange to emphasize choice
+    }
+
+    const btnDeal = { x: width / 2 - (width * 0.15) / 2, y: height * 0.8, width: width * 0.15, height: height * 0.08, text: dealButtonText, color: dealButtonColor };
     drawButton(btnDeal); // Always show this button, text changes based on state
 
     drawButton(btnBackToGamblingMenu);
@@ -1329,7 +1363,7 @@ function drawCardBack(x, y, w, h) {
 
 function drawBetInput() {
     const inputX = width / 2 - (width * 0.2) / 2;
-    const inputY = height * 0.6;
+    const inputY = height * 0.6; // Adjusted Y position to be consistent with other screens
     const inputWidth = width * 0.2;
     const inputHeight = height * 0.06;
 
@@ -1374,11 +1408,22 @@ function spinRoulette(betAmount, type) {
         addGameMessage("Wheel is still spinning!", 'warning');
         return;
     }
+    if (betAmount <= 0 || isNaN(betAmount)) {
+        addGameMessage("Please enter a valid bet amount.", 'error');
+        return;
+    }
+    if (gameMoney < betAmount) {
+        addGameMessage("Not enough money for that bet!", 'error');
+        return;
+    }
 
     rouletteBetType = type; // Store the bet type for drawing
     rouletteWheelValue = -1; // Reset value for animation
     gamblingResultText = "Spinning...";
     rouletteLastSpinTime = millis();
+
+    // Deduct bet immediately
+    gameMoney -= betAmount;
 
     setTimeout(() => {
         const result = floor(random(0, 37)); // 0-36
@@ -1400,9 +1445,16 @@ function spinRoulette(betAmount, type) {
         }
         
         // Handle the bet outcome
-        handleBet(betAmount, payout, isWin);
-        gamblingResultText = `Result: ${rouletteWheelValue}`;
-        if(isWin) gamblingResultText += " - WIN!"; else gamblingResultText += " - LOSE.";
+        if (isWin) {
+            const winnings = betAmount * payout;
+            gameMoney += winnings;
+            gamblingResultText = `Result: ${rouletteWheelValue} - YOU WON $${winnings.toFixed(2)}!`;
+            gamblingOutcomeColor = color(50, 200, 50); // Green for win
+        } else {
+            gamblingResultText = `Result: ${rouletteWheelValue} - YOU LOST $${betAmount.toFixed(2)}.`;
+            gamblingOutcomeColor = color(200, 50, 50); // Red for loss
+        }
+        updateMoney(0); // Update money display
     }, ROULETTE_SPIN_DURATION);
 }
 
@@ -1412,10 +1464,21 @@ function rollDice(betAmount, type) {
         addGameMessage("Dice are still rolling!", 'warning');
         return;
     }
+    if (betAmount <= 0 || isNaN(betAmount)) {
+        addGameMessage("Please enter a valid bet amount.", 'error');
+        return;
+    }
+    if (gameMoney < betAmount) {
+        addGameMessage("Not enough money for that bet!", 'error');
+        return;
+    }
 
     diceBetType = type; // Store bet type for drawing
     gamblingResultText = "Rolling...";
     diceLastRollTime = millis();
+
+    // Deduct bet immediately
+    gameMoney -= betAmount;
 
     setTimeout(() => {
         const roll1 = floor(random(1, 7)); // 1-6
@@ -1435,9 +1498,16 @@ function rollDice(betAmount, type) {
             if (totalRoll > 7) { isWin = true; payout = 2; }
         }
 
-        handleBet(betAmount, payout, isWin);
-        gamblingResultText = `Rolled: ${roll1} + ${roll2} = ${totalRoll}`;
-        if(isWin) gamblingResultText += " - WIN!"; else gamblingResultText += " - LOSE.";
+        if (isWin) {
+            const winnings = betAmount * payout;
+            gameMoney += winnings;
+            gamblingResultText = `Rolled: ${roll1} + ${roll2} = ${totalRoll} - YOU WON $${winnings.toFixed(2)}!`;
+            gamblingOutcomeColor = color(50, 200, 50); // Green for win
+        } else {
+            gamblingResultText = `Rolled: ${roll1} + ${roll2} = ${totalRoll} - YOU LOST $${betAmount.toFixed(2)}.`;
+            gamblingOutcomeColor = color(200, 50, 50); // Red for loss
+        }
+        updateMoney(0); // Update money display
     }, DICE_ROLL_DURATION);
 }
 
@@ -1447,7 +1517,7 @@ function startHighLow() {
     highLowCard2 = null; // Hide second card
     highLowChoice = 'none';
     gamblingResultText = "Bet and choose High or Low!";
-    highLowLastGameTime = millis();
+    highLowLastGameTime = millis(); // Reset time for potential reveal animation
 }
 
 function drawRandomCard() {
@@ -1465,31 +1535,48 @@ function placeHighLowBet(betAmount, choice) {
         addGameMessage("Please deal a new game first.", 'warning');
         return;
     }
-    if (gamblingBetAmount <= 0 || isNaN(gamblingBetAmount)) {
+    if (betAmount <= 0 || isNaN(betAmount)) {
         addGameMessage("Please enter a valid bet amount.", 'error');
+        return;
+    }
+    if (gameMoney < betAmount) {
+        addGameMessage("Not enough money for that bet!", 'error');
         return;
     }
 
     highLowChoice = choice; // Store player's choice
     gamblingResultText = "Revealing...";
     
+    // Deduct bet immediately
+    gameMoney -= betAmount;
+
     setTimeout(() => {
         highLowCard2 = drawRandomCard();
         highLowRevealed = true;
 
         let isWin = false;
+        let payout = 2; // High-Low is typically 2x (even money)
+
         if (highLowCard2.value > highLowCard1.value && choice === 'high') {
             isWin = true;
         } else if (highLowCard2.value < highLowCard1.value && choice === 'low') {
             isWin = true;
         } else if (highLowCard2.value === highLowCard1.value) {
-            // Push or lose, depending on house rules. For simplicity, let's say a tie is a loss for now.
+            // Tie condition: often a push (bet returned) or a loss for the player.
+            // For simplicity, let's make it a loss for the player to add risk.
             isWin = false;
         }
 
-        handleBet(betAmount, 2, isWin); // 2x payout for High-Low
-        gamblingResultText = `Your choice: ${choice.toUpperCase()}! Card 2: ${highLowCard2.rank}${highLowCard2.suit}.`;
-        if (isWin) gamblingResultText += " YOU WIN!"; else gamblingResultText += " YOU LOSE!";
+        if (isWin) {
+            const winnings = betAmount * payout;
+            gameMoney += winnings;
+            gamblingResultText = `Your choice: ${choice.toUpperCase()}! Card 2: ${highLowCard2.rank}${highLowCard2.suit}. YOU WON $${winnings.toFixed(2)}!`;
+            gamblingOutcomeColor = color(50, 200, 50); // Green for win
+        } else {
+            gamblingResultText = `Your choice: ${choice.toUpperCase()}! Card 2: ${highLowCard2.rank}${highLowCard2.suit}. YOU LOST $${betAmount.toFixed(2)}.`;
+            gamblingOutcomeColor = color(200, 50, 50); // Red for loss
+        }
+        updateMoney(0); // Update money display
     }, HIGHLOW_REVEAL_DURATION);
 }
 
@@ -1555,7 +1642,7 @@ function drawGameInfo() {
 
     // Location
     textSize(textBaseSize);
-    text('📍', boxX + padding, currentTextY); // Icon
+    text('�', boxX + padding, currentTextY); // Icon
     text(`Location: ${gameLocation}`, boxX + padding + iconSize + 5, currentTextY);
 
     // Reset shadow
@@ -1661,6 +1748,7 @@ function setGameState(newState) {
     } else if (newState === 'gamblingHighLow') {
         gameLocation = "High-Low Card Game";
         addGameMessage("Playing High-Low. Choose wisely!", 'info');
+        startHighLow(); // Always start a fresh game when entering High-Low
     }
     else {
         // Generic messages for other states if needed
