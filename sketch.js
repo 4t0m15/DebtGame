@@ -283,6 +283,121 @@ function drawGamblingScreen() {
     drawBackButton();
 }
 
+// Function to draw a generic "Back to Main Menu" button
+function drawBackButton() {
+    const backButtonWidth = width * 0.3;
+    const backButtonHeight = height * 0.08;
+    const backButtonX = (width - backButtonWidth) / 2;
+    const backButtonY = height * 0.85;
+
+    let btnColor = color(100, 100, 100); // Gray
+    if (mouseX > backButtonX && mouseX < backButtonX + backButtonWidth &&
+        mouseY > backButtonY && mouseY < backButtonY + backButtonHeight) {
+        btnColor = lerpColor(btnColor, color(255), 0.2);
+        cursor(HAND);
+    } else {
+        cursor(ARROW);
+    }
+
+    fill(btnColor);
+    noStroke();
+    rect(backButtonX, backButtonY, backButtonWidth, backButtonHeight, 10);
+
+    stroke(btnColor.levels[0] * 0.8, btnColor.levels[1] * 0.8, btnColor.levels[2] * 0.8);
+    strokeWeight(1);
+    rect(backButtonX, backButtonY, backButtonWidth, backButtonHeight, 10);
+
+    fill(255);
+    textSize(backButtonHeight * 0.4);
+    textAlign(CENTER, CENTER);
+    text("Back to Main Menu", backButtonX + backButtonWidth / 2, backButtonY + backButtonHeight / 2);
+
+    // Attach click event for back button
+    // Note: mousePressed() is where all clicks are handled for p5.js elements.
+    // This `if (mouseIsPressed)` block here is just for direct visual feedback for this button.
+    // The actual state change happens in mousePressed() if the button is clicked there.
+}
+
+// --- Utility Functions ---
+function addGameMessage(message, type = 'info') {
+    gameMessages.push({ text: message, type: type });
+    const messagesDiv = document.getElementById('game-messages');
+
+    // Clear existing messages in the DOM (except the 'Game Log:' title)
+    while (messagesDiv.children.length > 1) {
+        messagesDiv.removeChild(messagesDiv.lastChild);
+    }
+
+    // Add messages from the `gameMessages` array to DOM
+    gameMessages.forEach(msg => {
+        const p = document.createElement('p');
+        p.textContent = msg.text;
+        p.classList.add('text-sm', 'mb-0.5'); // Add some tailwind classes for styling
+        if (msg.type === 'success') p.classList.add('text-green-300');
+        else if (msg.type === 'error') p.classList.add('text-red-400');
+        else if (msg.type === 'warning') p.classList.add('text-yellow-300');
+        else p.classList.add('text-gray-300');
+        messagesDiv.appendChild(p);
+    });
+
+    // Scroll to the bottom
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    // Keep only the last 10 messages from the actual array
+    if (gameMessages.length > 10) {
+        gameMessages = gameMessages.slice(-10);
+    }
+}
+
+function updateGameInfoDisplay() {
+    document.getElementById('money-display').textContent = `$${gameMoney.toLocaleString()}`;
+    document.getElementById('day-display').textContent = gameDay;
+    document.getElementById('location-display').textContent = gameLocation;
+}
+
+// Function to change the game state (which screen is active)
+function setGameState(newState) {
+    currentGameState = newState;
+    if (newState === 'mainMenu') {
+        gameLocation = "Main Menu";
+        addGameMessage("Returned to main menu.");
+    } else {
+        if (newState === 'drugWars') {
+            gameLocation = "Drug Wars";
+            addGameMessage("Entering Drug Wars...", 'info');
+        } else if (newState === 'stockMarket') {
+            gameLocation = "Stock Market";
+            addGameMessage("Entering Stock Market...", 'info');
+        } else if (newState === 'gambling') {
+            gameLocation = "Gambling Hall";
+            addGameMessage("Entering Gambling Hall...", 'info');
+        }
+    }
+    updateGameInfoDisplay();
+}
+
+// Function to reset the game to its initial state
+function resetGame() {
+    gameMoney = 1000;
+    gameDay = 1;
+    location = "Main Menu"; // Reset location to main menu
+    gameMessages = []; // Clear all messages
+    addGameMessage("Game reset. Welcome back!");
+    setGameState('mainMenu'); // Go back to main menu
+}
+
+// Example functions for game progress
+function advanceDay() {
+    gameDay++;
+    addGameMessage(`Advanced to Day ${gameDay}.`);
+    updateGameInfoDisplay();
+}
+
+function updateMoney(amount) {
+    gameMoney += amount;
+    addGameMessage(`Money changed by $${amount}. Current: $${gameMoney}`);
+    updateGameInfoDisplay();
+}
 
 
 
