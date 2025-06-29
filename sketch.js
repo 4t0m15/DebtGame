@@ -29,14 +29,14 @@ const BLINK_INTERVAL = 700; // milliseconds for one phase (e.g., 700ms on, 700ms
 
 // --- Stock Market Variables ---
 const regions = [
-    { name: "USA Stock Market", stocks: ["MSFT", "AAPL", "GOOGL", "AMZN", "TSLA"] },
-    { name: "European Stock Market", stocks: ["SAP", "VWAGY", "RMS.PA", "BP", "MC.PA"] },
-    { name: "Chinese Stock Market", stocks: ["BABA", "TCEHY", "JD", "BIDU", "NIO"] },
-    { name: "Indian Stock Market", stocks: ["RELIANCE", "TCS", "HDFCBANK", "INFY", "BHARTIARTL"] },
-    { name: "Italian Stock Market", stocks: ["ENI", "ISP.MI", "CRM.MI", "TIT.MI", "STM"] },
-    { name: "British Stock Market", stocks: ["HSBA", "UL", "GSK", "RIO", "AZN"] }
+    { name: "Global Exchange", stocks: ["AURAX", "CYBRP", "ENRGY", "FINCO", "HYGEN"] },
+    { name: "Tech Innovations Hub", stocks: ["QUANT", "NEURO", "DATAM", "ROBOS", "SPACEX"] },
+    { name: "Emerging Markets League", stocks: ["AGROX", "INFRA", "MINEF", "TEXLA", "PHARM"] },
+    { name: "European Financial Core", stocks: ["LUXOR", "PRISM", "VANGU", "ALPHO", "ZETAO"] },
+    { name: "Asian Growth Nexus", stocks: ["KRYPT", "ZENIT", "DYNMC", "NEXUS", "OMEGA"] },
+    { name: "Latin American Ventures", stocks: ["SOLAR", "RAINF", "HARVST", "TRADE", "BRIGHT"] }
 ];
-let currentRegionIndex = 0; // Default to USA
+let currentRegionIndex = 0; // Default to Global Exchange
 
 // Stores stock data: { symbol: { price: float, prevPrice: float, volatility: float, history: [] } }
 let stocksData = {};
@@ -49,6 +49,7 @@ let stockTiles = []; // Array of objects for clickable stock tiles
 
 // Button for back to stock market from buy/sell or wallet
 let btnBackToStockMarket;
+let btnBackToMain; // Declared globally for access
 
 
 // p5.js setup function - runs once when the sketch starts
@@ -150,6 +151,7 @@ function mousePressed() {
     } else if (currentGameState === 'moveRegion') {
         // Handle region selection buttons
         for (let i = 0; i < regions.length; i++) {
+            // Re-calculate button properties here for click detection as they are drawn in a loop
             const regionBtn = {
                 x: width / 2 - (width * 0.45) / 2, // Centered like main menu buttons
                 y: height * 0.25 + i * (height * 0.08 + height * 0.02), // Stacked vertically
@@ -169,24 +171,25 @@ function mousePressed() {
             setGameState('stockMarket');
         }
     } else if (currentGameState === 'buySellStock') {
-        const buyBtn = { x: width * 0.35, y: height * 0.7, width: width * 0.1, height: height * 0.06 };
-        const sellBtn = { x: width * 0.55, y: height * 0.7, width: width * 0.1, height: height * 0.06 };
-        const maxBtn = { x: width * 0.55 + width * 0.1 + 10, y: height * 0.63, width: width * 0.07, height: height * 0.04 };
-        const buyMaxBtn = { x: width * 0.35 - width * 0.07 - 10, y: height * 0.63, width: width * 0.07, height: height * 0.04 };
+        const btnBuy = { x: width * 0.35, y: height * 0.7, width: width * 0.1, height: height * 0.06 };
+        const btnSell = { x: width * 0.55, y: height * 0.7, width: width * 0.1, height: height * 0.06 };
+        // Max buttons are positioned relative to buy/sell buttons, ensure consistency
+        const btnMaxBuy = { x: btnBuy.x - (width * 0.07 + 10), y: height * 0.63, width: width * 0.07, height: height * 0.04 };
+        const btnMaxSell = { x: btnSell.x + btnSell.width + 10, y: height * 0.63, width: width * 0.07, height: height * 0.04 };
 
 
-        if (isMouseOver(buyBtn)) {
+        if (isMouseOver(btnBuy)) {
             buyStock(selectedStockSymbol, int(buySellQuantity));
             buySellQuantity = ""; // Clear quantity after purchase
-        } else if (isMouseOver(sellBtn)) {
+        } else if (isMouseOver(btnSell)) {
             sellStock(selectedStockSymbol, int(buySellQuantity));
             buySellQuantity = ""; // Clear quantity after sale
         } else if (isMouseOver(btnBackToStockMarket)) {
             setGameState('stockMarket');
-        } else if (isMouseOver(maxBtn)) {
+        } else if (isMouseOver(btnMaxSell)) {
             // Set quantity to max sellable
             buySellQuantity = (playerPortfolio[selectedStockSymbol] ? playerPortfolio[selectedStockSymbol].quantity : 0).toString();
-        } else if (isMouseOver(buyMaxBtn)) {
+        } else if (isMouseOver(btnMaxBuy)) {
             // Set quantity to max buyable
             const stockPrice = stocksData[selectedStockSymbol].price;
             if (stockPrice > 0) {
@@ -338,26 +341,53 @@ function drawMainMenu() {
     drawButton(btnGambling);
     drawButton(btnNewGame);
 }
-    // Generic function to draw a button
+    // Generic function to draw a button with enhanced styling
 function drawButton(button) {
     let btnColor = button.color;
     let textColor = color(255); // White text
+    let currentStrokeWeight = 2;
+    let currentShadowBlur = 0;
+    let shadowColor = 'rgba(0,0,0,0)';
 
     // Hover effect
     if (isMouseOver(button)) {
         btnColor = lerpColor(btnColor, color(255), 0.2); // Lighten on hover
+        currentShadowBlur = 15; // Increased glow on hover
+        shadowColor = btnColor; // Glow color matches button
         cursor(HAND); // Change cursor to hand
     } else {
         cursor(ARROW); // Default cursor
     }
 
-    fill(btnColor);
-    noStroke();
-    rect(button.x, button.y, button.width, button.height, 15); // Rounded corners
+    // Apply shadow before drawing the button
+    drawingContext.shadowOffsetX = 0;
+    drawingContext.shadowOffsetY = 0;
+    drawingContext.shadowBlur = currentShadowBlur;
+    drawingContext.shadowColor = shadowColor;
 
-    // Add a subtle border for theme
+    // Draw button background (gradient-like effect)
+    for (let i = 0; i < button.height / 2; i++) {
+        let inter = map(i, 0, button.height / 2, 0, 1);
+        let c = lerpColor(btnColor, color(btnColor.levels[0] * 0.6, btnColor.levels[1] * 0.6, btnColor.levels[2] * 0.6), inter);
+        fill(c);
+        rect(button.x, button.y + i, button.width, 2, 15); // Top half
+        rect(button.x, button.y + button.height - i - 2, button.width, 2, 15); // Bottom half
+    }
+    fill(btnColor); // Fill the middle part
+    rect(button.x, button.y + button.height / 2, button.width, 0, 15);
+
+
+    noStroke();
+    rect(button.x, button.y, button.width, button.height, 15); // Main button shape for click detection and final fill
+
+    // Reset shadow properties after drawing button
+    drawingContext.shadowBlur = 0;
+    drawingContext.shadowColor = 'rgba(0,0,0,0)';
+
+    // Add a subtle border
     stroke(btnColor.levels[0] * 0.8, btnColor.levels[1] * 0.8, btnColor.levels[2] * 0.8);
-    strokeWeight(2);
+    strokeWeight(currentStrokeWeight);
+    noFill(); // Draw only border
     rect(button.x, button.y, button.width, button.height, 15);
 
 
@@ -390,7 +420,7 @@ function initializeStocks() {
             stocksData[symbol] = {
                 price: parseFloat((random(50, 200)).toFixed(2)), // Initial price
                 prevPrice: 0, // Will be updated on first day advance
-                volatility: random(0.01, 0.05), // Price change percentage
+                volatility: random(0.08, 0.25), // Increased volatility range
                 history: [] // To store price history if needed later
             };
         }
@@ -405,7 +435,7 @@ function advanceStockPrices() {
         let change = stocksData[symbol].price * stocksData[symbol].volatility * random(-1, 1);
         stocksData[symbol].price = parseFloat((stocksData[symbol].price + change).toFixed(2));
         // Ensure price doesn't go below a reasonable minimum
-        if (stocksData[symbol].price < 1) stocksData[symbol].price = 1;
+        if (stocksData[symbol].price < 1) stocksData[symbol].price = 1; // Prevent price from going to zero or negative
     }
     addGameMessage("Stock prices updated.", 'info');
 }
@@ -425,7 +455,7 @@ function setupStockMarketButtons() {
         width: buttonWidth,
         height: buttonHeight,
         text: 'Next Day',
-        color: color(50, 150, 200) // Blueish
+        color: color(60, 90, 150) // Blueish-gray
     };
     btnMoveRegion = {
         x: startX + buttonWidth + gap,
@@ -433,7 +463,7 @@ function setupStockMarketButtons() {
         width: buttonWidth,
         height: buttonHeight,
         text: 'Move',
-        color: color(180, 100, 50) // Orangish
+        color: color(90, 60, 150) // Purplish-gray
     };
     btnWallet = {
         x: startX + 2 * (buttonWidth + gap),
@@ -441,16 +471,16 @@ function setupStockMarketButtons() {
         width: buttonWidth,
         height: buttonHeight,
         text: 'Wallet',
-        color: color(50, 180, 50) // Greenish
+        color: color(60, 150, 90) // Greenish-gray
     };
-    // Reusing the back to main button concept for screens that go back to stock market
+    // Back to Stock Market button (used in wallet/move/buy-sell)
     btnBackToStockMarket = {
         x: width / 2 - (width * 0.2) / 2, // Centered
-        y: height * 0.9,
+        y: height * 0.9, // Positioned at the bottom
         width: width * 0.2,
         height: height * 0.07,
         text: 'Back',
-        color: color(80, 80, 80)
+        color: color(100, 100, 100) // Neutral gray
     };
 
     // Main stock market back button (to main menu)
@@ -460,31 +490,52 @@ function setupStockMarketButtons() {
         width: width * 0.2,
         height: height * 0.07,
         text: 'Main Menu',
-        color: color(80, 80, 80)
+        color: color(100, 100, 100) // Neutral gray
     };
 }
 
 function drawStockMarketScreen() {
-    background(30, 100, 30); // Dark green background for Stock Market
+    background(35, 45, 60); // Dark, desaturated blue-gray background, replacing green
 
-    // Display current region
-    fill(255);
-    textSize(width * 0.03);
-    textAlign(CENTER, TOP);
-    text(regions[currentRegionIndex].name, width / 2, height * 0.15); // Position below main title
+    // Region Display Panel
+    const regionPanelWidth = width * 0.6;
+    const regionPanelHeight = height * 0.1;
+    const regionPanelX = width / 2 - regionPanelWidth / 2;
+    const regionPanelY = height * 0.15; // Position below main title
+
+    // Modern flat/subtle design for region panel
+    fill(45, 55, 70); // Slightly lighter than background
+    stroke(80, 95, 110); // Subtle light border
+    strokeWeight(1);
+    rect(regionPanelX, regionPanelY, regionPanelWidth, regionPanelHeight, 10); // Slightly rounded corners
+
+    // Add a very subtle inner shadow for depth
+    drawingContext.shadowOffsetX = 0;
+    drawingContext.shadowOffsetY = 2;
+    drawingContext.shadowBlur = 5;
+    drawingContext.shadowColor = 'rgba(0,0,0,0.3)';
+    rect(regionPanelX, regionPanelY, regionPanelWidth, regionPanelHeight, 10);
+    drawingContext.shadowBlur = 0;
+    drawingContext.shadowColor = 'rgba(0,0,0,0)';
+
+    fill(240, 245, 250); // Off-white for readability
+    textSize(width * 0.028); // Slightly smaller, sleeker text
+    textAlign(CENTER, CENTER);
+    text(regions[currentRegionIndex].name, regionPanelX + regionPanelWidth / 2, regionPanelY + regionPanelHeight / 2);
+
 
     // Draw stock tiles
     const stocksInRegion = regions[currentRegionIndex].stocks;
     const numStocks = stocksInRegion.length;
-    const tileWidth = width * 0.15;
-    const tileHeight = height * 0.12;
-    const tileGapX = width * 0.02;
-    const tileGapY = height * 0.03;
+    const tileWidth = width * 0.17; // Adjust tile width
+    const tileHeight = height * 0.18; // Adjust tile height
+    const tileGapX = width * 0.015; // Reduced gap
+    const tileGapY = height * 0.02;
 
     // Calculate starting X to center the tiles
     const totalTilesWidth = numStocks * tileWidth + (numStocks - 1) * tileGapX;
     let startX = (width - totalTilesWidth) / 2;
-    const startY = height * 0.3; // Position below region name
+    const startY = height * 0.3; // Position below region panel
 
     stockTiles = []; // Clear and re-populate for current view
 
@@ -496,36 +547,71 @@ function drawStockMarketScreen() {
 
         stockTiles.push({ x: tileX, y: tileY, width: tileWidth, height: tileHeight, symbol: symbol });
 
-        // Draw tile background
-        fill(50, 70, 90); // Dark blue-gray for tile background
-        stroke(100);
+        // Tile background with subtle modern look
+        let tileBaseColor = color(50, 60, 75); // Dark blue-gray
+        let tileHoverColor = color(70, 85, 100); // Lighter blue-gray on hover
+
+        let currentTileColor = tileBaseColor;
+        if (isMouseOver(stockTiles[i])) {
+            currentTileColor = tileHoverColor;
+            cursor(HAND);
+        } else {
+            cursor(ARROW);
+        }
+
+        // Apply outer shadow for depth
+        drawingContext.shadowOffsetX = 0;
+        drawingContext.shadowOffsetY = 5;
+        drawingContext.shadowBlur = 10;
+        drawingContext.shadowColor = 'rgba(0,0,0,0.4)';
+
+        fill(currentTileColor);
+        noStroke();
+        rect(tileX, tileY, tileWidth, tileHeight, 12); // Rounded corners
+
+        drawingContext.shadowBlur = 0;
+        drawingContext.shadowColor = 'rgba(0,0,0,0)'; // Reset shadow
+
+        // Inner border for crispness
+        stroke(100, 115, 130);
         strokeWeight(1);
-        rect(tileX, tileY, tileWidth, tileHeight, 10);
+        noFill();
+        rect(tileX, tileY, tileWidth, tileHeight, 12);
 
-        // Stock Info
-        fill(255);
-        textSize(tileHeight * 0.25);
+        // Stock Info - Symbols (top center)
+        fill(240, 245, 250); // Off-white
+        textSize(tileHeight * 0.22); // Responsive text size
         textAlign(CENTER, TOP);
-        text(symbol, tileX + tileWidth / 2, tileY + tileHeight * 0.1); // Symbol
+        text(symbol, tileX + tileWidth / 2, tileY + tileHeight * 0.1);
 
-        textSize(tileHeight * 0.2);
-        text(`$${stock.price.toFixed(2)}`, tileX + tileWidth / 2, tileY + tileHeight * 0.4); // Price
+        // Current Price (middle center)
+        fill(255, 230, 0); // Gold-yellow for price
+        textSize(tileHeight * 0.28); // Larger, more prominent price
+        text(`$${stock.price.toFixed(2)}`, tileX + tileWidth / 2, tileY + tileHeight * 0.45);
 
-        // Price change indicator
+        // Price change indicator (bottom center)
         if (stock.prevPrice !== 0) {
             const change = stock.price - stock.prevPrice;
-            let changeColor = color(200); // Default neutral
+            let changeColor;
+            let arrow = '';
+
             if (change > 0) {
-                changeColor = color(0, 200, 0); // Green for positive
+                changeColor = color(50, 220, 100); // Muted green for positive
+                arrow = '▲ ';
             } else if (change < 0) {
-                changeColor = color(200, 0, 0); // Red for negative
+                changeColor = color(220, 80, 80); // Muted red for negative
+                arrow = '▼ ';
+            } else {
+                changeColor = color(180, 180, 180); // Gray for no change
             }
+
             fill(changeColor);
-            text(`${change.toFixed(2)}`, tileX + tileWidth / 2, tileY + tileHeight * 0.7); // Change value
+            textSize(tileHeight * 0.15); // Smaller text for change
+            text(`${arrow}${abs(change).toFixed(2)}`, tileX + tileWidth / 2, tileY + tileHeight * 0.75);
         }
     }
 
-    // Draw action buttons
+    // Draw action buttons - using enhanced drawButton function
     drawButton(btnNextDay);
     drawButton(btnMoveRegion);
     drawButton(btnWallet);
@@ -533,20 +619,28 @@ function drawStockMarketScreen() {
 }
 
 function drawWalletScreen() {
-    background(50, 50, 100); // Blueish background for Wallet
-    fill(255);
+    background(45, 55, 70); // Darker blue-gray background for Wallet
+
+    fill(240, 245, 250);
     textSize(width * 0.03);
     textAlign(CENTER, TOP);
     text("Your Portfolio", width / 2, height * 0.15);
 
-    // Table headers
+    // Table design
     const tableYStart = height * 0.25;
     const colWidth = width * 0.15;
     const rowHeight = height * 0.05;
     const startX = width / 2 - (colWidth * 2.5); // Center the table
 
-    textSize(height * 0.025);
-    fill(200, 200, 0); // Yellowish for headers
+    // Table background container
+    fill(35, 45, 60, 220); // Darker, more opaque background
+    stroke(80, 95, 110);
+    strokeWeight(1);
+    rect(startX - 10, tableYStart - rowHeight * 0.8, colWidth * 5 + 20, (Object.keys(playerPortfolio).length + 1) * rowHeight + rowHeight * 0.6, 8); // Slightly rounded
+
+    // Table headers
+    textSize(height * 0.023); // Slightly smaller header text
+    fill(255, 230, 0); // Gold-yellow for headers
     textAlign(CENTER, CENTER);
     text("Symbol", startX + colWidth * 0.5, tableYStart);
     text("Quantity", startX + colWidth * 1.5, tableYStart);
@@ -555,6 +649,7 @@ function drawWalletScreen() {
     text("P/L", startX + colWidth * 4.5, tableYStart);
 
     let currentY = tableYStart + rowHeight;
+    let rowNumber = 0;
     for (const symbol in playerPortfolio) {
         const item = playerPortfolio[symbol];
         const currentStock = stocksData[symbol];
@@ -563,8 +658,17 @@ function drawWalletScreen() {
         const currentValue = item.quantity * currentStock.price;
         const profitLoss = currentValue - (item.quantity * item.avgPrice);
 
-        fill(255);
-        textSize(height * 0.02);
+        // Alternating row background
+        if (rowNumber % 2 === 0) {
+            fill(50, 60, 75, 180); // Slightly lighter blue-gray for even rows
+        } else {
+            fill(45, 55, 70, 180); // Darker blue-gray for odd rows
+        }
+        noStroke();
+        rect(startX - 10, currentY - rowHeight * 0.5, colWidth * 5 + 20, rowHeight, 0); // Draw row background
+
+        fill(240, 245, 250); // Off-white for data text
+        textSize(height * 0.018); // Smaller data text
         textAlign(CENTER, CENTER);
 
         text(symbol, startX + colWidth * 0.5, currentY);
@@ -572,21 +676,23 @@ function drawWalletScreen() {
         text(`$${item.avgPrice.toFixed(2)}`, startX + colWidth * 2.5, currentY);
         text(`$${currentValue.toFixed(2)}`, startX + colWidth * 3.5, currentY);
 
-        let plColor = color(200);
-        if (profitLoss > 0) plColor = color(0, 200, 0);
-        else if (profitLoss < 0) plColor = color(200, 0, 0);
+        let plColor;
+        if (profitLoss > 0) plColor = color(50, 220, 100);
+        else if (profitLoss < 0) plColor = color(220, 80, 80);
+        else plColor = color(180); // Neutral gray
         fill(plColor);
         text(`$${profitLoss.toFixed(2)}`, startX + colWidth * 4.5, currentY);
 
         currentY += rowHeight;
+        rowNumber++;
     }
 
-    drawButton(btnBackToStockMarket);
+    drawButton(btnBackToStockMarket); // Reusing the back button style
 }
 
 function drawMoveRegionScreen() {
-    background(60, 60, 120); // Darker blue background for Move screen
-    fill(255);
+    background(45, 55, 70); // Dark blue-gray background for Move screen
+    fill(240, 245, 250);
     textSize(width * 0.03);
     textAlign(CENTER, TOP);
     text("Choose a Region", width / 2, height * 0.15);
@@ -602,8 +708,50 @@ function drawMoveRegionScreen() {
         const btnX = width / 2 - buttonWidth / 2;
         const btnY = currentY;
 
-        const regionBtn = { x: btnX, y: btnY, width: buttonWidth, height: buttonHeight, text: region.name, color: (i === currentRegionIndex ? color(100, 200, 100) : color(80, 80, 80)) };
-        drawButton(regionBtn);
+        let regionColor = color(60, 70, 85); // Darker blue-gray for unselected
+        let textColor = color(240, 245, 250);
+        let currentStrokeWeight = 1.5;
+        let borderColor = color(100, 115, 130); // Subtle border
+        let currentShadowBlur = 0;
+        let shadowColor = 'rgba(0,0,0,0)';
+
+        if (i === currentRegionIndex) {
+            regionColor = color(80, 130, 100); // Muted green for selected
+            textColor = color(255); // Brighter text for selected
+            currentStrokeWeight = 3;
+            borderColor = color(255, 230, 0); // Yellow border for selected
+            currentShadowBlur = 10;
+            shadowColor = color(80, 130, 100, 150); // Greenish glow for selected
+        }
+
+        if (mouseX > btnX && mouseX < btnX + buttonWidth &&
+            mouseY > btnY && mouseY < btnY + buttonHeight) {
+            regionColor = lerpColor(regionColor, color(100, 115, 130), 0.2); // Lighten on hover
+            currentShadowBlur = 15; // Increased glow on hover
+            shadowColor = regionColor; // Glow color matches button
+            cursor(HAND);
+        } else {
+            cursor(ARROW);
+        }
+
+        // Apply shadow
+        drawingContext.shadowOffsetX = 0;
+        drawingContext.shadowOffsetY = 5;
+        drawingContext.shadowBlur = currentShadowBlur;
+        drawingContext.shadowColor = shadowColor;
+
+        fill(regionColor);
+        stroke(borderColor);
+        strokeWeight(currentStrokeWeight);
+        rect(btnX, btnY, buttonWidth, buttonHeight, 15); // Rounded corners
+
+        drawingContext.shadowBlur = 0;
+        drawingContext.shadowColor = 'rgba(0,0,0,0)'; // Reset shadow
+
+        fill(textColor);
+        textSize(buttonHeight * 0.4);
+        textAlign(CENTER, CENTER);
+        text(region.name, btnX + buttonWidth / 2, btnY + buttonHeight / 2);
 
         currentY += buttonHeight + gap;
     }
@@ -625,28 +773,45 @@ function drawBuySellStockScreen(symbol) {
     const stock = stocksData[symbol];
     const ownedQuantity = playerPortfolio[symbol] ? playerPortfolio[symbol].quantity : 0;
 
-    background(40, 70, 40); // Slightly lighter green background
+    background(35, 45, 60); // Dark blue-gray background for buy/sell
 
-    fill(255);
+    fill(240, 245, 250);
     textSize(width * 0.04);
     textAlign(CENTER, TOP);
-    text(`${symbol} Stock`, width / 2, height * 0.15);
+    text(`${symbol} Stock Details`, width / 2, height * 0.15);
 
-    textSize(width * 0.025);
-    text(`Current Price: $${stock.price.toFixed(2)}`, width / 2, height * 0.25);
-    text(`Owned: ${ownedQuantity}`, width / 2, height * 0.32);
-    text(`Your Money: $${gameMoney.toLocaleString()}`, width / 2, height * 0.39);
+    // Display stock details prominently
+    const detailTextSize = height * 0.035; // Larger text for details
+    const detailLineSpacing = detailTextSize * 1.5;
+    const detailX = width / 2;
+    let detailY = height * 0.25;
+
+    fill(255, 230, 0); // Gold-yellow for current price
+    textSize(detailTextSize);
+    text(`Current Price: $${stock.price.toFixed(2)}`, detailX, detailY);
+
+    fill(200, 210, 220); // Light gray for owned quantity
+    detailY += detailLineSpacing;
+    text(`Owned: ${ownedQuantity}`, detailX, detailY);
+
+    fill(255, 180, 180); // Softer red for money
+    detailY += detailLineSpacing;
+    text(`Your Money: $${gameMoney.toLocaleString()}`, detailX, detailY);
 
     // Quantity input (simulated)
-    fill(50, 50, 50);
-    noStroke();
     const inputX = width / 2 - (width * 0.2) / 2;
     const inputY = height * 0.5;
     const inputWidth = width * 0.2;
     const inputHeight = height * 0.06;
-    rect(inputX, inputY, inputWidth, inputHeight, 5);
 
-    fill(255);
+    // Input field background
+    fill(30, 40, 50); // Even darker grey
+    stroke(100, 115, 130); // Lighter border
+    strokeWeight(1);
+    rect(inputX, inputY, inputWidth, inputHeight, 8); // Rounded corners
+
+    // Text for quantity
+    fill(240, 245, 250);
     textSize(width * 0.02);
     textAlign(CENTER, CENTER);
     text(buySellQuantity || 'Enter Qty', inputX + inputWidth / 2, inputY + inputHeight / 2);
@@ -654,8 +819,8 @@ function drawBuySellStockScreen(symbol) {
     // Buy / Sell / Max buttons
     const btnBuy = { x: width * 0.35, y: height * 0.7, width: width * 0.1, height: height * 0.06, text: 'Buy', color: color(50, 180, 50) };
     const btnSell = { x: width * 0.55, y: height * 0.7, width: width * 0.1, height: height * 0.06, text: 'Sell', color: color(220, 50, 50) };
-    const btnMaxSell = { x: width * 0.55 + width * 0.1 + 10, y: height * 0.63, width: width * 0.07, height: height * 0.04, text: 'Max', color: color(100, 100, 100) };
-    const btnMaxBuy = { x: width * 0.35 - width * 0.07 - 10, y: height * 0.63, width: width * 0.07, height: height * 0.04, text: 'Max', color: color(100, 100, 100) };
+    const btnMaxSell = { x: btnSell.x + btnSell.width + 10, y: height * 0.63, width: width * 0.07, height: height * 0.04, text: 'Max', color: color(100, 100, 100) };
+    const btnMaxBuy = { x: btnBuy.x - (width * 0.07 + 10), y: height * 0.63, width: width * 0.07, height: height * 0.04, text: 'Max', color: color(100, 100, 100) };
 
     drawButton(btnBuy);
     drawButton(btnSell);
@@ -684,7 +849,7 @@ function buyStock(symbol, quantity) {
         playerPortfolio[symbol].avgPrice = (totalOldCost + cost) / playerPortfolio[symbol].quantity;
 
         addGameMessage(`Bought ${quantity} shares of ${symbol} for $${cost.toFixed(2)}.`, 'success');
-        addGameMessage(`New Avg Price: $${playerPortfolio[symbol].avgPrice.toFixed(2)}`, 'info');
+        updateMoney(0); // Trigger money display update
     } else {
         addGameMessage("Not enough money to buy!", 'error');
     }
@@ -709,18 +874,28 @@ function sellStock(symbol, quantity) {
         delete playerPortfolio[symbol]; // Remove from portfolio if quantity is zero
     }
     addGameMessage(`Sold ${quantity} shares of ${symbol} for $${revenue.toFixed(2)}.`, 'success');
+    updateMoney(0); // Trigger money display update
 }
 
 function changeRegion(newIndex) {
+    // A small cost to move regions to add more strategy
+    const moveCost = 50; // Example cost
+
+    if (gameMoney < moveCost) {
+        addGameMessage(`Not enough money to move! Requires $${moveCost}.`, 'error');
+        return;
+    }
+    
     if (gameDay <= 1) { // Prevent moving on Day 1 (or other logic if needed)
         addGameMessage("Cannot move on Day 1.", 'warning');
         return;
     }
 
     if (newIndex >= 0 && newIndex < regions.length) {
+        gameMoney -= moveCost; // Deduct cost
         currentRegionIndex = newIndex;
         advanceDay(); // Moving takes a day
-        addGameMessage(`Moved to ${regions[currentRegionIndex].name}.`, 'info');
+        addGameMessage(`Moved to ${regions[currentRegionIndex].name} for $${moveCost}.`, 'info');
         setGameState('stockMarket'); // Return to stock market view
     } else {
         addGameMessage("Invalid region selected.", 'error');
@@ -729,8 +904,7 @@ function changeRegion(newIndex) {
 
 
 // Function to draw a generic "Back to Main Menu" button (reused for general screens)
-let btnBackToMain; // Declare globally or in relevant setup scope
-
+// Note: btnBackToMain is declared globally above
 function drawBackButton() {
     const backButtonWidth = width * 0.3;
     const backButtonHeight = height * 0.08;
@@ -816,12 +990,14 @@ function drawGameInfo() {
     currentTextY += lineSpacing;
 
     // Day
+    textSize(textBaseSize);
     text('🗓️', boxX + padding, currentTextY); // Icon
     text(`Day: ${gameDay}`, boxX + padding + iconSize + 5, currentTextY);
 
     currentTextY += lineSpacing;
 
     // Location
+    textSize(textBaseSize);
     text('📍', boxX + padding, currentTextY); // Icon
     text(`Location: ${gameLocation}`, boxX + padding + iconSize + 5, currentTextY);
 
@@ -910,7 +1086,14 @@ function setGameState(newState) {
     } else if (newState === 'stockMarket') {
         gameLocation = regions[currentRegionIndex].name;
         addGameMessage(`Entering ${gameLocation}...`, 'info');
-    } else {
+    } else if (newState === 'wallet') {
+        addGameMessage("Viewing your portfolio.", 'info');
+    } else if (newState === 'moveRegion') {
+        addGameMessage("Choosing new market region.", 'info');
+    } else if (newState === 'buySellStock') {
+        addGameMessage(`Trading ${selectedStockSymbol}.`, 'info');
+    }
+    else {
         // Generic messages for other states if needed
         gameLocation = newState; // Placeholder
         addGameMessage(`Entering ${newState}...`, 'info');
