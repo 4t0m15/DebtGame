@@ -1,0 +1,124 @@
+/* Import Google Font - Inter for a clean look */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 16px; /* p-4 equivalent */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-color: #1a202c; /* Tailwind gray-900 equivalent */
+    color: #edf2f7; /* Tailwind gray-200 equivalent */
+}
+
+/* Neon-like effect for the title */
+.game-title {
+    font-size: 2.25rem; /* text-4xl equivalent */
+    font-weight: 900; /* font-bold equivalent */
+    color: #ef4444; /* Red base color */
+    margin-bottom: 24px; /* mb-6 equivalent */
+    text-align: center;
+    text-shadow:
+        0 0 7px #ef4444,
+        0 0 10px #ef4444,
+        0 0 21px #ef4444,
+        0 0 42px #ff0000,
+        0 0 82px #ff0000,
+        0 0 92px #ff0000,
+        0 0 102px #ff0000,
+        0 0 151px #ff0000;
+}
+
+/* Game container for the p5.js canvas */
+#game-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #2d3748; /* Tailwind gray-700 equivalent */
+    border: 2px solid #4a5568; /* Tailwind gray-600 equivalent */
+    border-radius: 0.75rem; /* rounded-lg equivalent */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15); /* Stronger shadow equivalent */
+    width: 100%; /* Important: makes the container take available width */
+    max-width: 800px; /* Limits the max width on larger screens */
+    aspect-ratio: 4/3; /* CRUCIAL: Maintains a 4:3 aspect ratio (width:height) */
+    position: relative;
+    overflow: hidden; /* Ensures rounded corners on canvas */
+}
+
+canvas {
+    display: block;
+    width: 100%; /* CRUCIAL: Makes canvas fill its container's width */
+    height: 100%; /* CRUCIAL: Makes canvas fill its container's height */
+    border-radius: 0.75rem; /* Match container border-radius */
+}
+
+#game-info, #game-messages {
+    margin-top: 16px; /* mt-4 equivalent */
+    background-color: #2d3748; /* Tailwind gray-800 equivalent */
+    padding: 1rem;
+    border-radius: 0.5rem; /* rounded-lg equivalent */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md equivalent */
+    border: 1px solid #4a5568; /* Tailwind gray-700 equivalent */
+    width: 100%;
+    max-width: 600px; /* max-w-2xl equivalent */
+    color: #e2e8f0; /* text-gray-200 equivalent */
+}
+
+#game-messages {
+    max-height: 10rem;
+    overflow-y: auto;
+    border-top: 2px solid #ef4444; /* A red border to fit theme */
+}
+
+/* This is the container inside #game-messages that addGameMessage uses */
+.log-messages-container {
+    /* Add any specific styling for this inner container if needed */
+}
+
+#game-info p, #game-messages p {
+    margin-bottom: 0.5rem;
+    color: #e2e8f0; /* text-gray-300 equivalent */
+}
+
+#game-info span {
+    font-weight: 700;
+    color: #63b3ed; /* Tailwind blue-400 equivalent */
+}
+
+#money-display {
+    color: #48bb78; /* Tailwind green-500 equivalent */
+}
+
+#day-display {
+    color: #f6ad55; /* Tailwind orange-400 equivalent */
+}
+
+#location-display {
+    color: #e53e3e; /* Tailwind red-600 equivalent */
+}
+
+/* Styles for game log messages based on type (used by sketch.js) */
+.log-message {
+    font-size: 0.875rem; /* text-sm equivalent */
+    margin-bottom: 0.25rem; /* mb-0.5 equivalent */
+}
+
+.log-info {
+    color: #e2e8f0; /* text-gray-300 equivalent */
+}
+
+.log-success {
+    color: #48bb78; /* text-green-300 equivalent */
+}
+
+.log-error {
+    color: #ef4444; /* text-red-400 equivalent */
+}
+
+.log-warning {
+    color: #f6ad55; /* text-yellow-300 equivalent */
+}
